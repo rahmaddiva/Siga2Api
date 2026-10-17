@@ -277,7 +277,24 @@ def parse_report(html: str) -> dict:
                 continue
             if is_index_row(row):
                 continue
+            # Baris footer JasperReports ("Sumber: ...", "Dicetak: ...") bukan data.
+            filled = [v for v in row if v.strip()]
+            if len(filled) <= 2 and re.match(
+                r"^(sumber|dicetak|diprint|halaman|page|cetak)\b", filled[0].strip(), re.I
+            ):
+                continue
             rows.append(row)
+
+    # Buang kolom yang seluruhnya kosong di ujung kanan/kiri (artefak layout).
+    if rows and columns:
+        keep = [i for i in range(len(columns))
+                if any((r[i] if i < len(r) else "").strip() for r in rows)]
+        if keep:
+            lo, hi = keep[0], keep[-1]
+            columns = columns[lo:hi + 1]
+            rows = [(r[lo:hi + 1] if len(r) >= hi + 1 else r[lo:] + [""] * (hi + 1 - len(r))) for r in rows]
+            if col_numbers:
+                col_numbers = col_numbers[lo:hi + 1]
 
     return {
         "title": title, "subtitle": subtitle, "period": period,

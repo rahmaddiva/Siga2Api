@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-18T02:21:21",
+ "generatedAt": "2026-10-18T02:34:21",
  "wilayah": {
   "provinsi": "Kalimantan Selatan",
   "provinsiId": 22,
@@ -794,7 +794,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 9
+   "colCount": 6
   },
   {
    "module": "dallap",
@@ -810,7 +810,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 16
+   "colCount": 13
   },
   {
    "module": "dallap",
@@ -826,7 +826,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 15
+   "colCount": 12
   },
   {
    "module": "dallap",
@@ -842,7 +842,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 17
+   "colCount": 14
   },
   {
    "module": "dallap",
@@ -858,7 +858,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 21
+   "colCount": 18
   },
   {
    "module": "dallap",
@@ -874,7 +874,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 16
+   "colCount": 13
   },
   {
    "module": "dallap",
@@ -890,7 +890,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 18
+   "colCount": 15
   },
   {
    "module": "dallap",
@@ -906,7 +906,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 12
+   "colCount": 9
   },
   {
    "module": "dallap",
@@ -922,7 +922,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 17
+   "colCount": 14
   },
   {
    "module": "dallap",
@@ -938,7 +938,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 17
+   "colCount": 14
   },
   {
    "module": "dallap",
@@ -954,7 +954,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 18
+   "colCount": 15
   },
   {
    "module": "dallap",
@@ -970,7 +970,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 17
+   "colCount": 14
   },
   {
    "module": "dallap",
@@ -986,7 +986,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 15
+   "colCount": 12
   },
   {
    "module": "dallap",
@@ -1002,7 +1002,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 14
+   "colCount": 11
   },
   {
    "module": "dallap",
@@ -1018,7 +1018,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 10
+   "colCount": 7
   },
   {
    "module": "dallap",
@@ -1034,7 +1034,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 11
+   "colCount": 8
   },
   {
    "module": "dallap",
@@ -1050,7 +1050,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 15
+   "colCount": 12
   },
   {
    "module": "dallap",
@@ -1066,7 +1066,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 23
+   "colCount": 20
   },
   {
    "module": "dallap",
@@ -1082,7 +1082,7 @@
    "empty": false,
    "error": null,
    "rowCount": 13,
-   "colCount": 14
+   "colCount": 11
   },
   {
    "module": "dallap",
@@ -1098,7 +1098,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 18
+   "colCount": 15
   },
   {
    "module": "dallap",
@@ -1114,7 +1114,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 15
+   "colCount": 12
   },
   {
    "module": "dallap",
@@ -1130,7 +1130,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 18
+   "colCount": 15
   },
   {
    "module": "dallap",
@@ -1146,7 +1146,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 19
+   "colCount": 16
   },
   {
    "module": "dallap",
@@ -1210,7 +1210,7 @@
    "empty": false,
    "error": null,
    "rowCount": 16,
-   "colCount": 36
+   "colCount": 34
   },
   {
    "module": "dallap",
@@ -1226,7 +1226,7 @@
    "empty": false,
    "error": null,
    "rowCount": 14,
-   "colCount": 34
+   "colCount": 30
   },
   {
    "module": "dallap",
@@ -1242,7 +1242,7 @@
    "empty": false,
    "error": null,
    "rowCount": 14,
-   "colCount": 34
+   "colCount": 30
   },
   {
    "module": "dallap",
@@ -1258,7 +1258,7 @@
    "empty": false,
    "error": null,
    "rowCount": 17,
-   "colCount": 34
+   "colCount": 30
   },
   {
    "module": "dallap",
@@ -1290,7 +1290,7 @@
    "empty": false,
    "error": null,
    "rowCount": 20,
-   "colCount": 33
+   "colCount": 30
   },
   {
    "module": "dallap",
@@ -1306,7 +1306,7 @@
    "empty": false,
    "error": null,
    "rowCount": 14,
-   "colCount": 27
+   "colCount": 23
   },
   {
    "module": "dallap",
@@ -1322,7 +1322,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 36
+   "colCount": 32
   },
   {
    "module": "dallap",
@@ -1338,7 +1338,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 36
+   "colCount": 31
   },
   {
    "module": "dallap",
@@ -1354,7 +1354,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 36
+   "colCount": 31
   },
   {
    "module": "dallap",
@@ -1370,7 +1370,7 @@
    "empty": false,
    "error": null,
    "rowCount": 15,
-   "colCount": 36
+   "colCount": 31
   },
   {
    "module": "dallap",
@@ -1402,7 +1402,7 @@
    "empty": false,
    "error": null,
    "rowCount": 18,
-   "colCount": 35
+   "colCount": 32
   },
   {
    "module": "dallap",
@@ -1418,7 +1418,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 29
+   "colCount": 24
   },
   {
    "module": "dallap",
@@ -1434,7 +1434,7 @@
    "empty": false,
    "error": null,
    "rowCount": 14,
-   "colCount": 36
+   "colCount": 33
   },
   {
    "module": "dallap",
@@ -1450,7 +1450,7 @@
    "empty": false,
    "error": null,
    "rowCount": 13,
-   "colCount": 37
+   "colCount": 32
   },
   {
    "module": "dallap",
@@ -1466,7 +1466,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 37
+   "colCount": 32
   },
   {
    "module": "dallap",
@@ -1482,7 +1482,7 @@
    "empty": false,
    "error": null,
    "rowCount": 15,
-   "colCount": 36
+   "colCount": 32
   },
   {
    "module": "dallap",
@@ -1498,7 +1498,7 @@
    "empty": false,
    "error": null,
    "rowCount": 199,
-   "colCount": 33
+   "colCount": 30
   },
   {
    "module": "dallap",
@@ -1514,7 +1514,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 36
+   "colCount": 31
   },
   {
    "module": "dallap",
@@ -1530,7 +1530,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 30
+   "colCount": 25
   },
   {
    "module": "dallap",
@@ -1594,7 +1594,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 20
+   "colCount": 17
   },
   {
    "module": "dallap",
@@ -1610,7 +1610,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 16
+   "colCount": 13
   },
   {
    "module": "dallap",
@@ -1626,7 +1626,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 18
+   "colCount": 15
   },
   {
    "module": "dallap",
@@ -1642,7 +1642,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 12
+   "colCount": 9
   },
   {
    "module": "dallap",
@@ -1658,7 +1658,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 21
+   "colCount": 17
   },
   {
    "module": "dallap",
@@ -1674,7 +1674,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 18
+   "colCount": 15
   },
   {
    "module": "dallap",
@@ -1690,7 +1690,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 12
+   "colCount": 9
   },
   {
    "module": "dallap",
@@ -1706,7 +1706,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 20
+   "colCount": 17
   },
   {
    "module": "dallap",
@@ -1722,7 +1722,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 16
+   "colCount": 13
   },
   {
    "module": "dallap",
@@ -1738,7 +1738,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 17
+   "colCount": 14
   },
   {
    "module": "dallap",
@@ -1754,7 +1754,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 17
+   "colCount": 14
   },
   {
    "module": "dallap",
@@ -1770,7 +1770,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 17
+   "colCount": 14
   },
   {
    "module": "dallap",
@@ -1786,7 +1786,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 11
+   "colCount": 8
   },
   {
    "module": "dallap",
@@ -1802,7 +1802,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 23
+   "colCount": 20
   },
   {
    "module": "dallap",
@@ -1818,7 +1818,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 11
+   "colCount": 8
   },
   {
    "module": "dallap",
@@ -1834,7 +1834,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 23
+   "colCount": 20
   },
   {
    "module": "dallap",
@@ -1850,7 +1850,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 11
+   "colCount": 8
   },
   {
    "module": "dallap",
@@ -1866,7 +1866,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 15
+   "colCount": 12
   },
   {
    "module": "dallap",
@@ -1882,7 +1882,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 13
+   "colCount": 10
   },
   {
    "module": "dallap",
@@ -1898,7 +1898,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 12
+   "colCount": 9
   },
   {
    "module": "dallap",
@@ -1914,7 +1914,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 13
+   "colCount": 10
   },
   {
    "module": "dallap",
@@ -1930,7 +1930,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 12
+   "colCount": 9
   },
   {
    "module": "dallap",
@@ -1946,7 +1946,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 10
+   "colCount": 7
   },
   {
    "module": "elsimil",
@@ -1962,7 +1962,7 @@
    "empty": false,
    "error": null,
    "rowCount": 15,
-   "colCount": 32
+   "colCount": 30
   },
   {
    "module": "elsimil",
@@ -1978,7 +1978,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 63
+   "colCount": 58
   },
   {
    "module": "elsimil",
@@ -1994,7 +1994,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 34
+   "colCount": 28
   },
   {
    "module": "elsimil",
@@ -2010,7 +2010,7 @@
    "empty": false,
    "error": null,
    "rowCount": 15,
-   "colCount": 27
+   "colCount": 24
   },
   {
    "module": "elsimil",
@@ -2026,7 +2026,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 104
+   "colCount": 98
   },
   {
    "module": "elsimil",
@@ -2042,7 +2042,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 38
+   "colCount": 31
   },
   {
    "module": "elsimil",
@@ -2058,7 +2058,7 @@
    "empty": false,
    "error": null,
    "rowCount": 15,
-   "colCount": 28
+   "colCount": 26
   },
   {
    "module": "elsimil",
@@ -2074,7 +2074,7 @@
    "empty": false,
    "error": null,
    "rowCount": 14,
-   "colCount": 59
+   "colCount": 57
   },
   {
    "module": "elsimil",
@@ -2090,7 +2090,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 35
+   "colCount": 29
   },
   {
    "module": "elsimil",
@@ -2106,7 +2106,7 @@
    "empty": false,
    "error": null,
    "rowCount": 15,
-   "colCount": 28
+   "colCount": 26
   },
   {
    "module": "elsimil",
@@ -2122,7 +2122,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 40
+   "colCount": 34
   },
   {
    "module": "elsimil",
@@ -2154,7 +2154,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 41
+   "colCount": 37
   },
   {
    "module": "elsimil",
@@ -2170,7 +2170,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 22
+   "colCount": 18
   },
   {
    "module": "elsimil",
@@ -2186,7 +2186,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 37
+   "colCount": 32
   },
   {
    "module": "elsimil",
@@ -2218,7 +2218,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 38
+   "colCount": 34
   },
   {
    "module": "elsimil",
@@ -2234,7 +2234,7 @@
    "empty": false,
    "error": null,
    "rowCount": 15,
-   "colCount": 28
+   "colCount": 26
   },
   {
    "module": "elsimil",
@@ -2250,7 +2250,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 39
+   "colCount": 34
   },
   {
    "module": "elsimil",
@@ -2266,7 +2266,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 23
+   "colCount": 18
   },
   {
    "module": "elsimil",
@@ -2282,7 +2282,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 41
+   "colCount": 37
   },
   {
    "module": "elsimil",
@@ -2298,7 +2298,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 28
+   "colCount": 25
   },
   {
    "module": "elsimil",
@@ -2314,7 +2314,7 @@
    "empty": false,
    "error": null,
    "rowCount": 11,
-   "colCount": 50
+   "colCount": 47
   },
   {
    "module": "elsimil",
@@ -2330,7 +2330,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 35
+   "colCount": 32
   },
   {
    "module": "elsimil",
@@ -2346,7 +2346,7 @@
    "empty": false,
    "error": null,
    "rowCount": 20,
-   "colCount": 38
+   "colCount": 36
   },
   {
    "module": "elsimil",
@@ -2362,7 +2362,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 44
+   "colCount": 41
   },
   {
    "module": "elsimil",
@@ -2378,7 +2378,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 28
+   "colCount": 25
   },
   {
    "module": "elsimil",
@@ -2410,7 +2410,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 35
+   "colCount": 32
   },
   {
    "module": "elsimil",
@@ -2426,7 +2426,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 39
+   "colCount": 36
   },
   {
    "module": "elsimil",
@@ -2442,7 +2442,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 42
+   "colCount": 39
   },
   {
    "module": "elsimil",
@@ -2458,7 +2458,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 28
+   "colCount": 25
   },
   {
    "module": "elsimil",
@@ -2474,7 +2474,7 @@
    "empty": false,
    "error": null,
    "rowCount": 11,
-   "colCount": 50
+   "colCount": 47
   },
   {
    "module": "elsimil",
@@ -2490,7 +2490,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 35
+   "colCount": 32
   },
   {
    "module": "elsimil",
@@ -2506,7 +2506,7 @@
    "empty": false,
    "error": null,
    "rowCount": 20,
-   "colCount": 38
+   "colCount": 36
   },
   {
    "module": "elsimil",
@@ -2522,7 +2522,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 42
+   "colCount": 39
   },
   {
    "module": "elsimil",
@@ -2554,7 +2554,7 @@
    "empty": false,
    "error": null,
    "rowCount": 11,
-   "colCount": 23
+   "colCount": 20
   },
   {
    "module": "elsimil",
@@ -2570,7 +2570,7 @@
    "empty": false,
    "error": null,
    "rowCount": 13,
-   "colCount": 71
+   "colCount": 53
   },
   {
    "module": "elsimil",
@@ -2586,7 +2586,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 49
+   "colCount": 43
   },
   {
    "module": "elsimil",
@@ -2602,7 +2602,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 39
+   "colCount": 34
   },
   {
    "module": "elsimil",
@@ -2618,7 +2618,7 @@
    "empty": false,
    "error": null,
    "rowCount": 13,
-   "colCount": 63
+   "colCount": 46
   },
   {
    "module": "elsimil",
@@ -2634,7 +2634,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 43
+   "colCount": 38
   },
   {
    "module": "elsimil",
@@ -2650,7 +2650,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 35
+   "colCount": 31
   },
   {
    "module": "elsimil",
@@ -2666,7 +2666,7 @@
    "empty": false,
    "error": null,
    "rowCount": 13,
-   "colCount": 67
+   "colCount": 50
   },
   {
    "module": "elsimil",
@@ -2682,7 +2682,7 @@
    "empty": false,
    "error": null,
    "rowCount": 14,
-   "colCount": 47
+   "colCount": 44
   },
   {
    "module": "elsimil",
@@ -2698,7 +2698,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 36
+   "colCount": 32
   },
   {
    "module": "krs",
@@ -2713,8 +2713,8 @@
    "period": null,
    "empty": false,
    "error": null,
-   "rowCount": 13,
-   "colCount": 26
+   "rowCount": 12,
+   "colCount": 23
   },
   {
    "module": "krs",
@@ -2729,8 +2729,8 @@
    "period": null,
    "empty": false,
    "error": null,
-   "rowCount": 14,
-   "colCount": 14
+   "rowCount": 13,
+   "colCount": 11
   },
   {
    "module": "krs",
@@ -2745,8 +2745,8 @@
    "period": null,
    "empty": false,
    "error": null,
-   "rowCount": 13,
-   "colCount": 12
+   "rowCount": 12,
+   "colCount": 9
   },
   {
    "module": "krs",
@@ -2761,8 +2761,8 @@
    "period": null,
    "empty": false,
    "error": null,
-   "rowCount": 13,
-   "colCount": 18
+   "rowCount": 12,
+   "colCount": 15
   },
   {
    "module": "yankb",
@@ -2772,11 +2772,11 @@
    "reportCategory": "YanKB-Bulanan-Kec",
    "description": "TABEL 1 - CAKUPAN LAPORAN TEMPAT PELAYANAN KB",
    "file": "yankb/YanKB-Bulanan-Kec__Tabel1.json",
-   "title": null,
-   "subtitle": null,
+   "title": "Tabel1",
+   "subtitle": "TABEL 1 - CAKUPAN LAPORAN TEMPAT PELAYANAN KB",
    "period": null,
    "empty": true,
-   "error": null,
+   "error": "RuntimeError: gagal: https://siga-api-gateway.bkkbn.go.id/report-siga-yankb-ocp/viewReport?filterPencarian=%7B%22reportName%22%3A%22Tabel1%22%2C%22reportType%22%3A%22html%22%2C%22reportCategory%22%3A%",
    "rowCount": 0,
    "colCount": 0
   },
@@ -3188,11 +3188,11 @@
    "reportCategory": "YanKB-Bulanan-Kec",
    "description": "TABEL 2 - JUMLAH PEMBERIAN INFORMED CONSENT PADA PELAYANAN PESERTA KB BARU DAN PESERTA KB ULANGAN",
    "file": "yankb/YanKB-Bulanan-Kec__Tabel2.json",
-   "title": null,
-   "subtitle": null,
+   "title": "Tabel2",
+   "subtitle": "TABEL 2 - JUMLAH PEMBERIAN INFORMED CONSENT PADA PELAYANAN PESERTA KB BARU DAN PESERTA KB ULANGAN",
    "period": null,
    "empty": true,
-   "error": null,
+   "error": "RuntimeError: gagal: https://siga-api-gateway.bkkbn.go.id/report-siga-yankb-ocp/viewReport?filterPencarian=%7B%22reportName%22%3A%22Tabel2%22%2C%22reportType%22%3A%22html%22%2C%22reportCategory%22%3A%",
    "rowCount": 0,
    "colCount": 0
   },
@@ -3514,7 +3514,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 17
+   "colCount": 14
   },
   {
    "module": "yankb",
@@ -3652,11 +3652,11 @@
    "reportCategory": "YanKB-Bulanan-Kec",
    "description": "TABEL 3 - JUMLAH PELAYANAN PESERTA KB BARU BERDASARKAN METODE KONTRASEPSI",
    "file": "yankb/YanKB-Bulanan-Kec__Tabel3.json",
-   "title": null,
-   "subtitle": null,
+   "title": "Tabel3",
+   "subtitle": "TABEL 3 - JUMLAH PELAYANAN PESERTA KB BARU BERDASARKAN METODE KONTRASEPSI",
    "period": null,
    "empty": true,
-   "error": null,
+   "error": "RuntimeError: gagal: https://siga-api-gateway.bkkbn.go.id/report-siga-yankb-ocp/viewReport?filterPencarian=%7B%22reportName%22%3A%22Tabel3%22%2C%22reportType%22%3A%22html%22%2C%22reportCategory%22%3A%",
    "rowCount": 0,
    "colCount": 0
   },
@@ -4004,11 +4004,11 @@
    "reportCategory": "YanKB-Bulanan-Kec",
    "description": "TABEL 3A - JUMLAH PELAYANAN PESERTA KB BARU YANG DILAYANI OLEH FASKES PEMERINTAH",
    "file": "yankb/YanKB-Bulanan-Kec__Tabel3A.json",
-   "title": null,
-   "subtitle": null,
+   "title": "Tabel3A",
+   "subtitle": "TABEL 3A - JUMLAH PELAYANAN PESERTA KB BARU YANG DILAYANI OLEH FASKES PEMERINTAH",
    "period": null,
    "empty": true,
-   "error": null,
+   "error": "RuntimeError: gagal: https://siga-api-gateway.bkkbn.go.id/report-siga-yankb-ocp/viewReport?filterPencarian=%7B%22reportName%22%3A%22Tabel3A%22%2C%22reportType%22%3A%22html%22%2C%22reportCategory%22%3A",
    "rowCount": 0,
    "colCount": 0
   },
@@ -4036,11 +4036,11 @@
    "reportCategory": "YanKB-Bulanan-Kec",
    "description": "TABEL 3C - JUMLAH PELAYANAN PESERTA KB BARU YANG DILAYANI OLEH RUMAH SAKIT",
    "file": "yankb/YanKB-Bulanan-Kec__Tabel3C.json",
-   "title": null,
-   "subtitle": null,
+   "title": "Tabel3C",
+   "subtitle": "TABEL 3C - JUMLAH PELAYANAN PESERTA KB BARU YANG DILAYANI OLEH RUMAH SAKIT",
    "period": null,
    "empty": true,
-   "error": null,
+   "error": "RuntimeError: gagal: https://siga-api-gateway.bkkbn.go.id/report-siga-yankb-ocp/viewReport?filterPencarian=%7B%22reportName%22%3A%22Tabel3C%22%2C%22reportType%22%3A%22html%22%2C%22reportCategory%22%3A",
    "rowCount": 0,
    "colCount": 0
   },
@@ -4052,11 +4052,11 @@
    "reportCategory": "YanKB-Bulanan-Kec",
    "description": "TABEL 3D - JUMLAH PELAYANAN PESERTA KB BARU YANG DILAYANI OLEH PRAKTIK MANDIRI BIDAN (SETARA FASKES)",
    "file": "yankb/YanKB-Bulanan-Kec__Tabel3D.json",
-   "title": null,
-   "subtitle": null,
+   "title": "Tabel3D",
+   "subtitle": "TABEL 3D - JUMLAH PELAYANAN PESERTA KB BARU YANG DILAYANI OLEH PRAKTIK MANDIRI BIDAN (SETARA FASKES)",
    "period": null,
    "empty": true,
-   "error": null,
+   "error": "RuntimeError: gagal: https://siga-api-gateway.bkkbn.go.id/report-siga-yankb-ocp/viewReport?filterPencarian=%7B%22reportName%22%3A%22Tabel3D%22%2C%22reportType%22%3A%22html%22%2C%22reportCategory%22%3A",
    "rowCount": 0,
    "colCount": 0
   },
@@ -4084,11 +4084,11 @@
    "reportCategory": "YanKB-Bulanan-Kec",
    "description": "TABEL 3F - JUMLAH PELAYANAN PESERTA KB BARU YANG DILAYANI OLEH PRAKTIK MANDIRI BIDAN JEJARING",
    "file": "yankb/YanKB-Bulanan-Kec__Tabel3F.json",
-   "title": null,
-   "subtitle": null,
+   "title": "Tabel3F",
+   "subtitle": "TABEL 3F - JUMLAH PELAYANAN PESERTA KB BARU YANG DILAYANI OLEH PRAKTIK MANDIRI BIDAN JEJARING",
    "period": null,
    "empty": true,
-   "error": null,
+   "error": "RuntimeError: gagal: https://siga-api-gateway.bkkbn.go.id/report-siga-yankb-ocp/viewReport?filterPencarian=%7B%22reportName%22%3A%22Tabel3F%22%2C%22reportType%22%3A%22html%22%2C%22reportCategory%22%3A",
    "rowCount": 0,
    "colCount": 0
   },
@@ -4132,11 +4132,11 @@
    "reportCategory": "YanKB-Bulanan-Kec",
    "description": "TABEL 6 - JUMLAH PELAYANAN PESERTA KB BARU BERDASARKAN PENGGUNAAN ASURANSI KESEHATAN",
    "file": "yankb/YanKB-Bulanan-Kec__Tabel6.json",
-   "title": null,
-   "subtitle": null,
+   "title": "Tabel6",
+   "subtitle": "TABEL 6 - JUMLAH PELAYANAN PESERTA KB BARU BERDASARKAN PENGGUNAAN ASURANSI KESEHATAN",
    "period": null,
    "empty": true,
-   "error": null,
+   "error": "RuntimeError: gagal: https://siga-api-gateway.bkkbn.go.id/report-siga-yankb-ocp/viewReport?filterPencarian=%7B%22reportName%22%3A%22Tabel6%22%2C%22reportType%22%3A%22html%22%2C%22reportCategory%22%3A%",
    "rowCount": 0,
    "colCount": 0
   },
@@ -4148,11 +4148,11 @@
    "reportCategory": "YanKB-Bulanan-Kec",
    "description": "TABEL 7 - JUMLAH KASUS KOMPLIKASI BERAT DAN KEGAGALAN BERDASARKAN METODE KONTRASEPSI",
    "file": "yankb/YanKB-Bulanan-Kec__Tabel7.json",
-   "title": null,
-   "subtitle": null,
+   "title": "Tabel7",
+   "subtitle": "TABEL 7 - JUMLAH KASUS KOMPLIKASI BERAT DAN KEGAGALAN BERDASARKAN METODE KONTRASEPSI",
    "period": null,
    "empty": true,
-   "error": null,
+   "error": "RuntimeError: gagal: https://siga-api-gateway.bkkbn.go.id/report-siga-yankb-ocp/viewReport?filterPencarian=%7B%22reportName%22%3A%22Tabel7%22%2C%22reportType%22%3A%22html%22%2C%22reportCategory%22%3A%",
    "rowCount": 0,
    "colCount": 0
   },
@@ -4298,7 +4298,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 22
+   "colCount": 19
   },
   {
    "module": "yankb",
@@ -4532,13 +4532,13 @@
    "reportCategory": "YanKB-Tahunan-Kec",
    "description": "TABEL 1A - JUMLAH TEMPAT PELAYANAN KB PEMERINTAH",
    "file": "yankb/YanKB-Tahunan-Kec__Tabel1A.json",
-   "title": "TABEL 1A",
-   "subtitle": "JUMLAH TEMPAT PELAYANAN KB PEMERINTAH",
-   "period": "TAHUN: 2026",
-   "empty": false,
-   "error": null,
-   "rowCount": 12,
-   "colCount": 17
+   "title": "Tabel1A",
+   "subtitle": "TABEL 1A - JUMLAH TEMPAT PELAYANAN KB PEMERINTAH",
+   "period": null,
+   "empty": true,
+   "error": "RuntimeError: gagal: https://siga-api-gateway.bkkbn.go.id/report-siga-yankb-ocp/viewReport?filterPencarian=%7B%22reportName%22%3A%22Tabel1A%22%2C%22reportType%22%3A%22html%22%2C%22reportCategory%22%3A",
+   "rowCount": 0,
+   "colCount": 0
   },
   {
    "module": "yankb",
@@ -4554,7 +4554,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 15
+   "colCount": 12
   },
   {
    "module": "yankb",
@@ -4570,7 +4570,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 15
+   "colCount": 12
   },
   {
    "module": "yankb",
@@ -4586,7 +4586,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 12
+   "colCount": 9
   },
   {
    "module": "yankb",
@@ -4596,13 +4596,13 @@
    "reportCategory": "YanKB-Tahunan-Kec",
    "description": "TABEL 3A - JUMLAH TEMPAT PELAYANAN KB PEMERINTAH BERDASARKAN STATUS KERJASAMA DENGAN BPJS KESEHATAN",
    "file": "yankb/YanKB-Tahunan-Kec__Tabel3A.json",
-   "title": "TABEL 3A",
-   "subtitle": "JUMLAH TEMPAT PELAYANAN KB PEMERINTAH BERDASARKAN STATUS KERJASAMA DENGAN BPJS KESEHATAN",
-   "period": "TAHUN: 2026",
-   "empty": false,
-   "error": null,
-   "rowCount": 12,
-   "colCount": 22
+   "title": "Tabel3A",
+   "subtitle": "TABEL 3A - JUMLAH TEMPAT PELAYANAN KB PEMERINTAH BERDASARKAN STATUS KERJASAMA DENGAN BPJS KESEHATAN",
+   "period": null,
+   "empty": true,
+   "error": "RuntimeError: gagal: https://siga-api-gateway.bkkbn.go.id/report-siga-yankb-ocp/viewReport?filterPencarian=%7B%22reportName%22%3A%22Tabel3A%22%2C%22reportType%22%3A%22html%22%2C%22reportCategory%22%3A",
+   "rowCount": 0,
+   "colCount": 0
   },
   {
    "module": "yankb",
@@ -4618,7 +4618,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 22
+   "colCount": 19
   },
   {
    "module": "yankb",
@@ -4634,7 +4634,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 14
+   "colCount": 11
   },
   {
    "module": "yankb",
@@ -4650,7 +4650,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 20
+   "colCount": 17
   },
   {
    "module": "yankb",
@@ -4666,7 +4666,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 20
+   "colCount": 17
   },
   {
    "module": "yankb",
@@ -4682,7 +4682,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 20
+   "colCount": 17
   },
   {
    "module": "yankb",
@@ -4698,7 +4698,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 12
+   "colCount": 9
   },
   {
    "module": "yankb",
@@ -4714,7 +4714,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 22
+   "colCount": 18
   },
   {
    "module": "yankb",
@@ -4730,7 +4730,7 @@
    "empty": false,
    "error": null,
    "rowCount": 12,
-   "colCount": 15
+   "colCount": 12
   },
   {
    "module": "yankb",
