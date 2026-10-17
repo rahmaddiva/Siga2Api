@@ -1,0 +1,15 @@
+# artefak reverse engineering
+_re/
+
+# dependensi & hasil build
+node_modules/
+dist/
+
+# token & output sementara
+_re/.token
+/data/
+scripts/*.json
+
+# OS
+.DS_Store
+Thumbs.db
