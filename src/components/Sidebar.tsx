@@ -29,12 +29,12 @@ function Icon({ path, className = 'size-5' }: { path: string; className?: string
 type Props = {
   index: Index
   activeModule: string
-  activeFile: string | null
+  activeReport: ReportEntry | null
   onSelectModule: (id: string) => void
   onSelectReport: (r: ReportEntry) => void
 }
 
-export function Sidebar({ index, activeModule, activeFile, onSelectModule, onSelectReport }: Props) {
+export function Sidebar({ index, activeModule, activeReport, onSelectModule, onSelectReport }: Props) {
   const [query, setQuery] = useState('')
 
   const byModule = useMemo(() => {
@@ -147,9 +147,12 @@ export function Sidebar({ index, activeModule, activeFile, onSelectModule, onSel
                       </p>
                       <ul className="space-y-0.5">
                         {reports.map((r) => {
-                          const selected = activeFile === r.file
+                          const selected =
+                            activeReport?.module === r.module &&
+                            activeReport?.reportName === r.reportName &&
+                            activeReport?.reportCategory === r.reportCategory
                           return (
-                            <li key={r.file}>
+                            <li key={`${r.module}-${r.reportName}-${r.reportCategory}`}>
                               <button
                                 type="button"
                                 onClick={() => onSelectReport(r)}
@@ -164,9 +167,25 @@ export function Sidebar({ index, activeModule, activeFile, onSelectModule, onSel
                                   {r.reportName.replace('Tabel', 'T')}
                                 </span>
                                 <span className="line-clamp-2 flex-1">{cleanDescription(r.description)}</span>
-                                {r.empty && (
-                                  <span className="mt-1 size-1.5 shrink-0 rounded-full bg-slate-300" title="Belum ada data" />
-                                )}
+                                {(() => {
+                                  const filled = r.periods.filter((p) => !p.empty && !p.error).length
+                                  if (filled === 0) {
+                                    return (
+                                      <span
+                                        className="mt-1 size-1.5 shrink-0 rounded-full bg-slate-300"
+                                        title="Belum ada data pada semua periode"
+                                      />
+                                    )
+                                  }
+                                  return (
+                                    <span
+                                      className="tabular mt-0.5 shrink-0 rounded bg-muted px-1 text-[10px] font-medium text-muted-foreground"
+                                      title={`${filled} dari ${r.periods.length} periode berisi data`}
+                                    >
+                                      {filled}/{r.periods.length}
+                                    </span>
+                                  )
+                                })()}
                               </button>
                             </li>
                           )

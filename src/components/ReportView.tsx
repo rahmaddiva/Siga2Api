@@ -1,24 +1,45 @@
-import { useEffect, useState } from 'react'
-import type { ReportData, ReportEntry } from '../lib/data'
-import { cleanDescription, loadReport } from '../lib/data'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { PeriodEntry, ReportData, ReportEntry } from '../lib/data'
+import { cleanDescription, loadReport, pickInitialPeriod } from '../lib/data'
 import { DataTable } from './DataTable'
+import { PeriodPicker } from './PeriodPicker'
 
 type Props = {
   entry: ReportEntry
   onDownload: () => void
+  onPeriodChange?: (p: PeriodEntry) => void
 }
 
-export function ReportView({ entry, onDownload }: Props) {
+export function ReportView({ entry, onDownload, onPeriodChange }: Props) {
+  const [period, setPeriod] = useState<PeriodEntry | null>(() =>
+    pickInitialPeriod(entry.periods),
+  )
   const [data, setData] = useState<ReportData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // Simpan callback di ref agar efek di bawah tidak ikut jalan saat induk
+  // merender ulang dengan fungsi baru (bisa mereset periode pilihan pengguna).
+  const notifyRef = useRef(onPeriodChange)
+  notifyRef.current = onPeriodChange
+
   useEffect(() => {
+    const next = pickInitialPeriod(entry.periods)
+    setPeriod(next)
+    if (next) notifyRef.current?.(next)
+  }, [entry])
+
+  useEffect(() => {
+    if (!period) {
+      setData(null)
+      setLoading(false)
+      return
+    }
     let alive = true
     setLoading(true)
     setError(null)
     setData(null)
-    loadReport(entry.file)
+    loadReport(period.file)
       .then((d) => {
         if (alive) setData(d)
       })
@@ -31,11 +52,16 @@ export function ReportView({ entry, onDownload }: Props) {
     return () => {
       alive = false
     }
-  }, [entry.file])
+  }, [period])
+
+  const periodSummary = useMemo(() => {
+    const filled = entry.periods.filter((p) => !p.empty && !p.error)
+    return { filled: filled.length, total: entry.periods.length }
+  }, [entry.periods])
 
   return (
     <section aria-labelledby="judul-laporan" className="min-w-0">
-      <header className="mb-5">
+      <header className="mb-4">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <span className="rounded-md bg-primary px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">
             {entry.moduleLabel}
@@ -46,16 +72,17 @@ export function ReportView({ entry, onDownload }: Props) {
           <span className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
             {entry.reportCategory}
           </span>
-          {data?.period && (
-            <span className="tabular rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-              {data.period.replace(/^TAHUN:\s*/i, '').replace(/^PERIODE:\s*/i, '')}
-            </span>
-          )}
+          <span className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+            {entry.periodType === 'monthly' ? 'Bulanan' : 'Tahunan'}
+          </span>
         </div>
 
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 id="judul-laporan" className="text-balance text-xl font-semibold leading-snug text-foreground sm:text-2xl">
+            <h2
+              id="judul-laporan"
+              className="text-balance text-xl font-semibold leading-snug text-foreground sm:text-2xl"
+            >
               {entry.reportName} — {cleanDescription(entry.description)}
             </h2>
             {data?.wilayah && Object.keys(data.wilayah).length > 0 && (
@@ -81,6 +108,29 @@ export function ReportView({ entry, onDownload }: Props) {
         </div>
       </header>
 
+      <PeriodPicker
+        periods={entry.periods}
+        activeKey={period?.key ?? null}
+        periodType={entry.periodType}
+        onSelect={(p) => {
+          setPeriod(p)
+          notifyRef.current?.(p)
+        }}
+      />
+
+      {periodSummary.total > 0 && periodSummary.filled === 0 && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="font-semibold">Belum ada data pada semua periode yang tersedia</p>
+          <p className="mt-0.5 text-amber-800">
+            Server SIGA mengembalikan tabel kosong untuk {entry.periodType === 'monthly'
+              ? 'setiap bulan'
+              : 'tahun'}{' '}
+            yang dipanen. Laporan ini mungkin diisi pada tingkat wilayah lain (provinsi),
+            atau memang belum ada pelaporan pada periode tersebut.
+          </p>
+        </div>
+      )}
+
       {loading && <TableSkeleton />}
 
       {error && (
@@ -94,9 +144,11 @@ export function ReportView({ entry, onDownload }: Props) {
         <div role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           <p className="font-semibold">Laporan ini gagal diambil dari server SIGA</p>
           <p className="mt-0.5 text-amber-800">
-            Server mengembalikan error saat snapshot dibuat (kemungkinan laporan butuh
-            tingkat wilayah berbeda, atau sedang tidak tersedia). Coba lagi nanti dengan
-            menjalankan ulang <code className="rounded bg-white px-1 py-0.5 font-mono text-xs">build_snapshot.py --force</code>.
+            Coba periode lain, atau jalankan ulang{' '}
+            <code className="rounded bg-white px-1 py-0.5 font-mono text-xs">
+              build_snapshot.py --force
+            </code>{' '}
+            saat server stabil.
           </p>
           <p className="tabular mt-1.5 text-xs text-amber-700">{data.error}</p>
         </div>
@@ -106,8 +158,9 @@ export function ReportView({ entry, onDownload }: Props) {
 
       {!loading && data && !data.empty && (
         <p className="mt-4 text-xs text-muted-foreground">
-          Sumber: SIGA BKKBN — snapshot statis diambil {new Date(data.fetchedAt).toLocaleString('id-ID')}.
-          Data bersifat agregat per wilayah; tidak memuat identitas perorangan.
+          Periode {data.periodLabel} · sumber: SIGA BKKBN — snapshot statis diambil{' '}
+          {new Date(data.fetchedAt).toLocaleString('id-ID')}. Data bersifat agregat per
+          wilayah; tidak memuat identitas perorangan.
         </p>
       )}
     </section>

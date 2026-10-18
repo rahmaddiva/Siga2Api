@@ -1,3 +1,13 @@
+export type PeriodEntry = {
+  key: string
+  label: string
+  file: string
+  empty: boolean
+  error?: string | null
+  rowCount: number
+  colCount: number
+}
+
 export type ReportEntry = {
   module: string
   moduleLabel: string
@@ -5,22 +15,21 @@ export type ReportEntry = {
   reportName: string
   reportCategory: string
   description: string
-  file: string
-  title: string | null
-  subtitle: string | null
-  period: string | null
-  empty: boolean
-  error?: string | null
+  periodType: 'annual' | 'monthly'
+  periods: PeriodEntry[]
   rowCount: number
   colCount: number
+  empty: boolean
+  error?: string | null
 }
 
 export type Index = {
   generatedAt: string
   wilayah: { provinsi: string; provinsiId: number; kabupaten: string; kabupatenId: number }
-  tahun: number
-  bulan: number
+  years: number[]
+  months: number[]
   totalReports: number
+  totalPeriods: number
   modules: { id: string; label: string }[]
   reports: ReportEntry[]
 }
@@ -40,6 +49,9 @@ export type ReportData = {
   reportName: string
   reportCategory: string
   description: string
+  periodType: 'annual' | 'monthly'
+  periodKey: string
+  periodLabel: string
   fetchedAt: string
 }
 
@@ -56,6 +68,13 @@ async function loadJson<T>(path: string): Promise<T> {
 
 export const loadIndex = () => loadJson<Index>('/data/index.json')
 export const loadReport = (file: string) => loadJson<ReportData>(`/data/${file}`)
+
+/** Periode awal: yang terbaru dan berisi data, kalau tidak ada ambil yang terbaru. */
+export function pickInitialPeriod(periods: PeriodEntry[]): PeriodEntry | null {
+  const filled = periods.filter((p) => !p.empty && !p.error)
+  const pool = filled.length > 0 ? filled : periods
+  return [...pool].sort((a, b) => b.key.localeCompare(a.key))[0] ?? null
+}
 
 /** Urutan grup yang masuk akal: tahunan dulu, lalu bulanan, lalu sisanya. */
 const GROUP_ORDER = [

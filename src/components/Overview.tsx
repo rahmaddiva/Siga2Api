@@ -73,7 +73,7 @@ export function Overview({ index, moduleId, onSelect }: Props) {
           {moduleReports
             .slice(0, 12)
             .map((r) => (
-              <li key={r.file}>
+              <li key={`${r.module}-${r.reportName}-${r.reportCategory}`}>
                 <button
                   type="button"
                   onClick={() => onSelect(r)}

@@ -183,3 +183,37 @@ Sebuah modul dianggap selesai di-RE bila:
 2. Ada satu contoh respons sukses (status + ukuran + bentuk, **tanpa nilai PII**).
 3. Katalog `reportName`/`reportCategory` modul tersebut tercatat.
 4. Perbedaan perilaku (mis. `Tabel1` vs `Tabel1Kab`, butuh `kecamatanId`) dicatat.
+
+---
+
+## 9. Dimensi periode (bulanan & tahunan)
+
+Snapshot sekarang multi-periode, bukan satu file per tabel. `reportCategory` yang
+mengandung `"Bulanan"` memakai `periode: "YYYY-MM"`; sisanya memakai `tahun: "YYYY"`.
+Di `index.json` tiap laporan punya `periodType` (`annual`/`monthly`) dan `periods[]`
+berisi `key`, `label`, `file`, `empty`, `error`, `rowCount`, `colCount`.
+
+```bash
+# --skip-monthly / --skip-annual memilih jenis periode, --force mengabaikan cache,
+# --years & --months menerima daftar (2025,2026) atau rentang (1-10).
+TOKEN=<jwt> python scripts/build_snapshot.py --years 2026 --months 1-10
+TOKEN=<jwt> python scripts/build_snapshot.py --years 2025,2026 --months 1,2,3 --only elsimil
+TOKEN=<jwt> python scripts/build_snapshot.py --skip-monthly --force   # ulang semua tahunan
+python scripts/build_snapshot.py --index-only                         # susun ulang index.json
+```
+
+**Nama file.** `<reportCategory>__<reportName>__<periodKey>.json` di
+`public/data/<modul>/`, contoh `YanKB-Bulanan-Kec__Tabel3__2026-10.json`.
+
+**Aturan saat mengubah parser.** `parse_report()` di `scripts/build_snapshot.py` harus
+tetap mengembalikan kontrak yang sama: `title, subtitle, period, wilayah, columns, rows,
+empty`. Jangan pernah mengisi `columns` dengan string kosong — pakai `Kolom N` sebagai
+fallback. Jangan menulis `period` berisi placeholder `null`.
+
+**Jangan tambahkan laporan by-name (PII).** Daftar pengecualian ada di `PII_REPORTS`
+dalam script; perluas set itu, jangan bikin filter terpisah.
+
+**Temuan ketersediaan data.** Laporan bulanan **YAN KB & DALLAP kosong** untuk Tanah
+Laut (semua periode). **ELSIMIL bulanan berisi data tapi identik antar bulan** — server
+tampaknya mengabaikan `periode`, jadi angka bulanannya belum bisa dipercaya sebagai
+potret per bulan.

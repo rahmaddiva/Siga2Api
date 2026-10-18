@@ -115,6 +115,35 @@ ENTITIES = {
 }
 
 
+# Kata kunci yang menandai baris header tabel (bukan baris metadata/wilayah).
+HEADER_HINT = ("KODE", "KECAMATAN", "KELURAHAN", "DESA", "JUMLAH", "URAIAN",
+               "NAMA", "KELOMPOK", "SASARAN", "TOTAL", "JENIS", "NO")
+
+# Alias label wilayah -> kunci baku. ELSIMIL memakai "KABUPATEN"/"PROVINSI",
+# DALLAP memakai "Kab"/"Prov".
+WILAYAH_ALIASES = {
+    "prov": ("prov", "propinsi", "provinsi"),
+    "kab": ("kab", "kabupaten"),
+    "kec": ("kec", "kecamatan"),
+    "desa": ("desa", "kelurahan", "kel"),
+}
+WILAYAH_KEY = {a: k for k, al in WILAYAH_ALIASES.items() for a in al}
+
+
+def usable_period(t: str) -> str | None:
+    """Kembalikan nilai periode, atau None bila hanya placeholder kosong.
+
+    Template ELSIMIL kadang mencetak "TAHUN null" / "TAHUN :" tanpa nilai.
+    `periodKey`/`periodLabel` dari harvest tetap jadi acuan sebenarnya.
+    """
+    v = t.strip()
+    if re.search(r"\bnull\b", v, re.I):
+        return None
+    if ":" in v:
+        return v if v.split(":", 1)[1].strip() else None
+    return v if re.search(r"\d", v) else None
+
+
 def cell_text(inner: str) -> str:
     txt = re.sub(r"<br\s*/?>", " ", inner)
     txt = re.sub(r"<[^>]+>", "", txt)
@@ -135,9 +164,13 @@ def parse_report(html: str) -> dict:
     # --- 1. ekspansi colspan/rowspan ke grid
     grid: list[list[str]] = []
     occupied: dict[tuple[int, int], str] = {}
+    # Rentang sel asli per baris: (kolom_awal, colspan, teks). Dipakai untuk
+    # mewarisi label dari header induk (lihat bagian 4).
+    spans: list[list[tuple[int, int, str]]] = []
     for ri, tr in enumerate(trs):
         cells = re.findall(r"<t[dh]([^>]*)>(.*?)</t[dh]>", tr, re.S)
         row: list[str] = []
+        row_spans: list[tuple[int, int, str]] = []
         col = 0
         for attrs, inner in cells:
             cs_m = re.search(r'colspan\s*=\s*"?(\d+)', attrs)
@@ -149,6 +182,7 @@ def parse_report(html: str) -> dict:
                 row.append(occupied.pop((ri, col)))
                 col += 1
             row.append(val)
+            row_spans.append((col, cs, val))
             for k in range(1, cs):
                 row.append("")
             for dr in range(1, rs):
@@ -159,6 +193,7 @@ def parse_report(html: str) -> dict:
             row.append(occupied.pop((ri, col)))
             col += 1
         grid.append(row)
+        spans.append(row_spans)
 
     width = max((len(r) for r in grid), default=0)
     grid = [r + [""] * (width - len(r)) for r in grid]
@@ -173,26 +208,58 @@ def parse_report(html: str) -> dict:
         return {"title": None, "subtitle": None, "period": None,
                 "wilayah": {}, "columns": [], "rows": [], "empty": True}
 
+    def is_table_header_row(row: list[str]) -> bool:
+        """Baris judul kolom tabel (bukan metadata), mis. NO/KODE/KECAMATAN."""
+        toks = {v.strip().upper().rstrip(".") for v in row if v.strip()}
+        return len(toks & set(HEADER_HINT)) >= 2
+
+    def wilayah_pairs(vals: list[str]):
+        """Ambil pasangan (kunci, nilai) wilayah dari sel-sel satu baris.
+
+        Menangani dua bentuk cetak: satu sel ("Prov : X" / "Prov X") dan dua
+        sel ("KABUPATEN", ": TANAH LAUT"). Placeholder `null` dan kata tingkat
+        wilayah tanpa nama ("Tingkat : Kabupaten") diabaikan.
+        """
+        for i, v in enumerate(vals):
+            # Pisah label dari nilainya: "Kab : X", "Kab: X", atau "Kab X".
+            m = re.match(r"(?i)\s*(" + "|".join(WILAYAH_KEY) + r")\b\s*[:.]?\s*(.*)$", v)
+            if not m:
+                continue
+            key = WILAYAH_KEY[m.group(1).lower()]
+            val = m.group(2).strip(" .-")
+            if not val and i + 1 < len(vals):
+                nxt = vals[i + 1].lstrip()
+                val = (nxt[1:] if nxt.startswith(":") else nxt).strip(" .-")
+            if (val and len(val) <= 60 and re.search(r"[A-Za-z]{2}", val)
+                    and val.lower() not in WILAYAH_KEY
+                    and not re.search(r"\bnull\b", val, re.I)):
+                yield key, val
+
     # --- 2. metadata dokumen
     title = subtitle = period = None
     wilayah: dict[str, str] = {}
-    for row in grid[:16]:
+    # Metadata dicetak sebelum tabel; berhenti di baris judul kolom pertama.
+    for row in grid[:24]:
         vals = [v for v in row if v]
-        joined = " ".join(vals)
-        for m in re.finditer(r"(Prov|Kab|Kec|Desa)\s*:\s*([^:]+?)(?=\s{2,}|$)", joined):
-            wilayah[m.group(1).lower()] = m.group(2).strip()
+        if not vals:
+            continue
+        if is_table_header_row(row):
+            break
+        for key, val in wilayah_pairs(vals):
+            wilayah.setdefault(key, val)
         if len(vals) == 1:
             t = vals[0]
             if t.upper().startswith("TABEL") and not title:
                 title = t
-            elif title and not subtitle and len(t) > 3 and not t.upper().startswith("TAHUN"):
+            elif (title and not subtitle and len(t) > 3
+                  and not t.upper().startswith("TAHUN")
+                  and not re.fullmatch(r"null", t, re.I)):
                 subtitle = t
             elif t.upper().startswith(("TAHUN", "PERIODE")):
-                period = t
+                # Template ELSIMIL kadang mencetak "TAHUN null" / "TAHUN :".
+                period = usable_period(t) or period
 
     # --- 3. blok header
-    HEADER_HINT = ("KODE", "KECAMATAN", "KELURAHAN", "DESA", "JUMLAH", "URAIAN",
-                   "NAMA", "KELOMPOK", "SASARAN", "TOTAL", "JENIS", "NO")
     header_idx = None
     for i, row in enumerate(grid):
         vals = [v for v in row if v]
@@ -222,6 +289,7 @@ def parse_report(html: str) -> dict:
         return sum(1 for v in row if v and re.fullmatch(r"[\d.,\-]+", v))
 
     header_rows: list[list[str]] = []
+    header_row_idx: list[int] = []
     index_rows: list[list[str]] = []
     data_start = None
     for i in range(header_idx, len(grid)):
@@ -235,6 +303,7 @@ def parse_report(html: str) -> dict:
             data_start = i
             break
         header_rows.append(row)
+        header_row_idx.append(i)
         if len(header_rows) > 5:
             data_start = i + 1
             break
@@ -251,8 +320,8 @@ def parse_report(html: str) -> dict:
     for lf in leaves:
         counts[lf] = counts.get(lf, 0) + 1
 
-    columns = []
-    for i, p in enumerate(paths):
+    columns: list[str] = []
+    for p in paths:
         if not p:
             columns.append("")
             continue
@@ -295,6 +364,47 @@ def parse_report(html: str) -> dict:
             rows = [(r[lo:hi + 1] if len(r) >= hi + 1 else r[lo:] + [""] * (hi + 1 - len(r))) for r in rows]
             if col_numbers:
                 col_numbers = col_numbers[lo:hi + 1]
+            # Rentang sel ikut digeser agar indeksnya tetap sejajar `columns`.
+            spans = [[(start - lo, cs, txt) for start, cs, txt in row]
+                     for row in spans]
+
+    # --- 6. label kolom yang kosong
+    # JasperReports kadang tidak mencetak sel anak untuk sebagian kolom. Untuk
+    # kolom BERISI DATA, warisi nama grup induk terdekat; kolom kosong (spacer
+    # layout) sengaja diberi "Kolom N" saja agar tidak meminjam nama tetangga.
+    def index_label(col: int) -> str:
+        if col_numbers and col < len(col_numbers):
+            # Baris indeks ditulis "(1) (2) 3=Σ(4-12)"; ambil angkanya saja.
+            num = col_numbers[col].strip().strip("()[] ")
+            if num:
+                return f"Kolom {num}"
+        return f"Kolom {col + 1}"
+
+    def parent_label(col: int) -> str:
+        """Nama grup induk terdekat yang membentang di atas `col`.
+
+        Level terdalam dilewati: sel lebar di level itu adalah tetangga
+        (mis. "PERORANGAN" mencakup kolom di sebelahnya), bukan induk kolom ini.
+        """
+        for level in range(len(header_rows) - 2, -1, -1):
+            for start, cs, txt in spans[header_row_idx[level]]:
+                if txt and start <= col < start + cs:
+                    return txt
+        return ""
+
+    filled: list[str] = []
+    for i, lbl in enumerate(columns):
+        if lbl:
+            filled.append(lbl)
+            continue
+        has_data = any((r[i] if i < len(r) else "").strip() for r in rows)
+        inherited = parent_label(i) if has_data else ""
+        # Hindari label kembar: warisan grup sering sama dengan sel tetangga.
+        if inherited and inherited not in filled:
+            filled.append(inherited)
+        else:
+            filled.append(index_label(i))
+    columns = filled
 
     return {
         "title": title, "subtitle": subtitle, "period": period,
@@ -310,7 +420,31 @@ def build_catalog(token):
     return raw
 
 
-def report_url(module, report, args, group=None):
+MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+              "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
+
+
+def period_type_of(category: str) -> str:
+    """Laporan 'Bulanan' memakai `periode`; sisanya memakai `tahun`."""
+    return "monthly" if "bulanan" in category.lower() else "annual"
+
+
+def period_label(key: str) -> str:
+    if "-" in key:
+        y, m = key.split("-")
+        return f"{MONTH_ABBR[int(m) - 1]} {y}"
+    return key
+
+
+def enumerate_periods(args) -> tuple[list[str], list[str]]:
+    """Kembalikan (keys_tahunan, keys_bulanan) yang akan dipanen."""
+    annual = [] if args.skip_annual else [str(y) for y in args.years]
+    monthly = [] if args.skip_monthly else [
+        f"{y}-{m:02d}" for y in args.years for m in args.months]
+    return annual, monthly
+
+
+def report_url(module, report, args, group, period_type, period_key):
     svc = MODULES[module]
     ov = (svc.get("groupOverrides") or {}).get(group or "", {})
     host = ov.get("host", svc["host"])
@@ -318,14 +452,13 @@ def report_url(module, report, args, group=None):
     category = ov.get("category", report["reportCategory"])
     filt = {"reportName": report["reportName"], "reportType": "html",
             "reportCategory": category}
-    if "bulanan" in report["reportCategory"].lower():
-        filt["periode"] = f"{args.tahun}-{args.bulan:02d}"
+    if period_type == "monthly":
+        filt["periode"] = period_key
     else:
-        filt["tahun"] = str(args.tahun)
+        filt["tahun"] = period_key
     filt["provinsiId"] = str(args.prov)
     if args.kab:
         filt["kabupatenId"] = str(args.kab)
-    # Service path wajib ikut: <base>/<service>/viewReport
     base = BASE[host]
     if service:
         base = f"{base}/{service}"
@@ -338,46 +471,36 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--prov", type=int, default=22)
     ap.add_argument("--kab", type=int, default=322)
-    ap.add_argument("--tahun", type=int, default=2026)
-    ap.add_argument("--bulan", type=int, default=10)
+    ap.add_argument("--years", default="2026",
+                    help="daftar tahun dipisah koma, mis. 2025,2026")
+    ap.add_argument("--months", default="1-10",
+                    help="bulan untuk laporan bulanan: '1-10' atau '1,2,3'")
     ap.add_argument("--out", default="public/data")
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--only", default=None, help="modul: yankb|dallap|krs|elsimil")
-    ap.add_argument("--max", type=int, default=0, help="batasi jumlah laporan (0=semua)")
-    ap.add_argument("--workers", type=int, default=8)
-    ap.add_argument("--index-only", action="store_true", help="susun ulang index.json dari file lokal")
+    ap.add_argument("--max", type=int, default=0, help="batasi jumlah job (0=semua)")
+    ap.add_argument("--workers", type=int, default=10)
+    ap.add_argument("--index-only", action="store_true",
+                    help="susun ulang index.json dari file lokal")
+    ap.add_argument("--skip-annual", action="store_true",
+                    help="jangan panen laporan tahunan")
+    ap.add_argument("--skip-monthly", action="store_true",
+                    help="jangan panen laporan bulanan")
     args = ap.parse_args()
+    args.years = [int(y) for y in str(args.years).split(",") if y.strip()]
+    args.months = _parse_months(args.months)
 
     token = os.environ.get("TOKEN")
     if not token and not args.index_only:
         sys.exit("Set TOKEN=<jwt> lebih dulu.")
 
-    index = []
-
-    # Mode cepat: susun ulang index.json dari file yang sudah ada (tanpa jaringan).
     if args.index_only:
-        for mod in ([args.only] if args.only else list(MODULES)):
-            cfg = MODULES[mod]
-            d = os.path.join(args.out, mod)
-            if not os.path.isdir(d):
-                continue
-            for fn in sorted(os.listdir(d)):
-                if not fn.endswith(".json"):
-                    continue
-                with open(os.path.join(d, fn), encoding="utf-8") as f:
-                    parsed = json.load(f)
-                rep = {
-                    "reportName": parsed.get("reportName", fn),
-                    "reportCategory": parsed.get("reportCategory", ""),
-                    "reportDescription": parsed.get("description", ""),
-                }
-                index.append(entry(mod, cfg, parsed.get("group", ""), rep,
-                                   parsed, fn[:-5]))
-        index.sort(key=lambda r: (r["module"], r["group"], r["reportName"]))
-        write_index(args, index)
+        mods = [args.only] if args.only else list(MODULES)
+        write_index(args, merge_index(args, collect_local(args), mods))
         return
 
     catalog = build_catalog(token)
+    annual_keys, monthly_keys = enumerate_periods(args)
 
     jobs = []
     mods = [args.only] if args.only else list(MODULES)
@@ -393,107 +516,213 @@ def main():
                 if any(k == cat and v is None for k, v in PII_REPORTS):
                     print(f"  SKIP PII {mod}/{cat}", file=sys.stderr)
                     continue
-                jobs.append((mod, cfg, group, rep))
+                ptype = period_type_of(cat)
+                keys = monthly_keys if ptype == "monthly" else annual_keys
+                for key in keys:
+                    jobs.append((mod, cfg, group, rep, ptype, key))
 
     if args.max:
         jobs = jobs[: args.max]
 
     def work(job):
-        mod, cfg, group, rep = job
+        mod, cfg, group, rep, ptype, key = job
         cat = rep["reportCategory"]
-        fname = f"{cat}__{rep['reportName']}".replace("/", "_")
+        fname = f"{cat}__{rep['reportName']}__{key}".replace("/", "_")
         path = os.path.join(args.out, mod, fname + ".json")
         if os.path.exists(path) and not args.force:
             try:
                 with open(path, encoding="utf-8") as f:
-                    d = json.load(f)
-                return ("cache", mod, cfg, group, rep, d, fname)
+                    return ("cache", job, json.load(f), fname)
             except Exception:  # noqa: BLE001
                 pass
-        url, filt = report_url(mod, rep, args, group)
-        try:
-            html = fetch(url, token)
-        except Exception as e:  # noqa: BLE001
-            stub = {
-                "title": rep["reportName"], "subtitle": rep.get("reportDescription", ""),
-                "period": None, "wilayah": {}, "columns": [], "rows": [],
-                "empty": True, "error": f"{type(e).__name__}: {e}"[:200],
-                "module": mod, "moduleLabel": cfg["label"], "group": group,
-                "reportName": rep["reportName"], "reportCategory": cat,
-                "description": rep.get("reportDescription", ""),
-                "filter": filt, "fetchedAt": time.strftime("%Y-%m-%dT%H:%M:%S"),
-                "source": "SIGA BKKBN — snapshot statis",
-            }
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(stub, f, ensure_ascii=False, separators=(",", ":"))
-            return ("err", mod, cfg, group, rep, stub, fname)
-        parsed = parse_report(html)
-        parsed.update({
+
+        url, filt = report_url(mod, rep, args, group, ptype, key)
+        base_meta = {
             "module": mod, "moduleLabel": cfg["label"], "group": group,
             "reportName": rep["reportName"], "reportCategory": filt["reportCategory"],
             "description": rep.get("reportDescription", ""),
+            "periodType": ptype, "periodKey": key, "periodLabel": period_label(key),
             "filter": filt, "fetchedAt": time.strftime("%Y-%m-%dT%H:%M:%S"),
             "source": "SIGA BKKBN — snapshot statis",
-        })
+        }
+        try:
+            html = fetch(url, token)
+        except Exception as e:  # noqa: BLE001
+            stub = {"title": rep["reportName"],
+                    "subtitle": rep.get("reportDescription", ""),
+                    "period": None, "wilayah": {}, "columns": [], "rows": [],
+                    "empty": True, "error": f"{type(e).__name__}: {e}"[:200],
+                    **base_meta}
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(stub, f, ensure_ascii=False, separators=(",", ":"))
+            return ("err", job, stub, fname)
+
+        parsed = parse_report(html)
+        parsed.update(base_meta)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(parsed, f, ensure_ascii=False, separators=(",", ":"))
-        return ("ok", mod, cfg, group, rep, parsed, fname)
+        return ("ok", job, parsed, fname)
 
-    done = 0
+    by_id: dict[tuple, dict] = {}
+    done = ok = err = 0
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
         futures = [pool.submit(work, j) for j in jobs]
         for fut in as_completed(futures):
-            status, mod, cfg, group, rep, payload, fname = fut.result()
+            status, job, parsed, fname = fut.result()
+            mod, cfg, group, rep, ptype, key = job
             done += 1
-            parsed = payload
             if status == "err":
-                print(f"  ERR  {mod}/{rep['reportName']}: {parsed.get('error','')}", file=sys.stderr)
-                index.append(entry(mod, cfg, group, rep, parsed, fname))
-                continue
-            tag = "cache" if status == "cache" else "OK   "
-            if status == "ok":
+                err += 1
+                print(f"  ERR  {mod}/{rep['reportName']}/{key}: "
+                      f"{parsed.get('error', '')[:70]}", file=sys.stderr)
+            elif status == "ok":
+                ok += 1
                 note = "kosong" if parsed["empty"] else f"{len(parsed['rows'])} baris"
-                print(f"  {tag} {mod}/{rep['reportCategory']}/{rep['reportName']} -> {note}",
-                      file=sys.stderr)
-            index.append(entry(mod, cfg, group, rep, parsed, fname))
+                print(f"  OK   {mod}/{rep['reportCategory']}/{rep['reportName']}/{key}"
+                      f" -> {note}", file=sys.stderr)
+            ident = (mod, group, rep["reportName"], rep["reportCategory"], ptype)
+            slot = by_id.setdefault(ident, {"mod": mod, "cfg": cfg, "group": group,
+                                            "rep": rep, "ptype": ptype, "periods": []})
+            slot["periods"].append({
+                "key": key,
+                "label": period_label(key),
+                "file": f"{mod}/{fname}.json",
+                "empty": parsed.get("empty", True),
+                "error": parsed.get("error"),
+                "rowCount": len(parsed.get("rows", [])),
+                "colCount": len(parsed.get("columns", [])),
+            })
 
-    index.sort(key=lambda r: (r["module"], r["group"], r["reportName"]))
+    index = merge_index(args, [entry_from(slot) for slot in by_id.values()], mods)
+    print(f"\n{done} job: {ok} ok, {err} error", file=sys.stderr)
     write_index(args, index)
 
 
+def _parse_months(spec: str) -> list[int]:
+    out: list[int] = []
+    for part in str(spec).split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            a, b = part.split("-", 1)
+            out.extend(range(int(a), int(b) + 1))
+        else:
+            out.append(int(part))
+    return sorted({m for m in out if 1 <= m <= 12})
+
+
+def collect_local(args) -> list[dict]:
+    """Susun index dari file yang sudah ada di disk (tanpa jaringan)."""
+    by_id: dict[tuple, dict] = {}
+    for mod in ([args.only] if args.only else list(MODULES)):
+        cfg = MODULES[mod]
+        d = os.path.join(args.out, mod)
+        if not os.path.isdir(d):
+            continue
+        for fn in sorted(os.listdir(d)):
+            if not fn.endswith(".json"):
+                continue
+            with open(os.path.join(d, fn), encoding="utf-8") as f:
+                parsed = json.load(f)
+            ptype = parsed.get("periodType") or period_type_of(
+                parsed.get("reportCategory", ""))
+            ident = (mod, parsed.get("group", ""), parsed.get("reportName", ""),
+                     parsed.get("reportCategory", ""), ptype)
+            slot = by_id.setdefault(ident, {
+                "mod": mod, "cfg": cfg, "group": parsed.get("group", ""),
+                "rep": {"reportName": parsed.get("reportName", ""),
+                        "reportCategory": parsed.get("reportCategory", ""),
+                        "reportDescription": parsed.get("description", "")},
+                "ptype": ptype, "periods": [],
+            })
+            key = parsed.get("periodKey", "")
+            slot["periods"].append({
+                "key": key,
+                "label": parsed.get("periodLabel") or period_label(key),
+                "file": f"{mod}/{fn[:-5]}.json",
+                "empty": parsed.get("empty", True),
+                "error": parsed.get("error"),
+                "rowCount": len(parsed.get("rows", [])),
+                "colCount": len(parsed.get("columns", [])),
+            })
+    return [entry_from(slot) for slot in by_id.values()]
+
+
+def merge_index(args, index: list[dict], mods: list[str]) -> list[dict]:
+    """Gabungkan entri baru ke index.json lama agar katalog tetap utuh.
+
+    `--only` hanya membatasi modul yang DIPANEN, bukan isi index. Tanpa merge,
+    hasil panen sebagian akan menimpa katalog dengan 47 laporan, bukan 300.
+    """
+    path = os.path.join(args.out, "index.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            old = json.load(f)
+        old_reports = old["reports"]
+        if not isinstance(old_reports, list):
+            raise ValueError("reports bukan list")
+    except (OSError, ValueError, KeyError, TypeError) as e:  # index hilang/rusak
+        print(f"  index lama tidak terbaca ({e.__class__.__name__}), "
+              f"memakai hasil panen saja", file=sys.stderr)
+        return index
+
+    # Entri segar selalu menang. Entri modul lain dipertahankan apa adanya;
+    # saat --max membatasi job, laporan modul ini yang tidak ikut dipanen
+    # juga dipertahankan agar tidak hilang.
+    fresh = {(r["module"], r["group"], r["reportName"], r["reportCategory"])
+             for r in index}
+    drop_mods = set() if args.max else set(mods)
+    kept = [r for r in old_reports
+            if (r.get("module"), r.get("group"), r.get("reportName"),
+                r.get("reportCategory")) not in fresh
+            and r.get("module") not in drop_mods]
+    if kept:
+        print(f"  merge index: {len(kept)} laporan lama dipertahankan",
+              file=sys.stderr)
+    return index + kept
+
+
 def write_index(args, index):
+    index.sort(key=lambda r: (r["module"], r["group"], r["reportName"]))
+    for r in index:
+        r["periods"].sort(key=lambda p: p["key"], reverse=True)
     meta = {
         "generatedAt": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "wilayah": {"provinsi": "Kalimantan Selatan", "provinsiId": args.prov,
                     "kabupaten": "Tanah Laut", "kabupatenId": args.kab},
-        "tahun": args.tahun,
-        "bulan": args.bulan,
+        "years": args.years,
+        "months": args.months,
         "totalReports": len(index),
+        "totalPeriods": sum(len(r["periods"]) for r in index),
         "modules": [{"id": m, "label": MODULES[m]["label"]} for m in MODULES],
         "reports": index,
     }
     os.makedirs(args.out, exist_ok=True)
     with open(os.path.join(args.out, "index.json"), "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=1)
-    print(f"\nSelesai: {len(index)} laporan -> {args.out}/index.json", file=sys.stderr)
+    print(f"Selesai: {len(index)} laporan / {meta['totalPeriods']} periode "
+          f"-> {args.out}/index.json", file=sys.stderr)
 
 
-def entry(mod, cfg, group, rep, parsed, fname):
+def entry_from(slot):
+    rep = slot["rep"]
+    periods = slot["periods"]
+    filled = [p for p in periods if not p["empty"] and not p["error"]]
     return {
-        "module": mod,
-        "moduleLabel": cfg["label"],
-        "group": group,
+        "module": slot["mod"],
+        "moduleLabel": slot["cfg"]["label"],
+        "group": slot["group"],
         "reportName": rep["reportName"],
-        "reportCategory": parsed.get("reportCategory") or rep["reportCategory"],
+        "reportCategory": rep["reportCategory"],
         "description": rep.get("reportDescription", ""),
-        "file": f"{mod}/{fname}.json",
-        "title": parsed.get("title"),
-        "subtitle": parsed.get("subtitle"),
-        "period": parsed.get("period"),
-        "empty": parsed.get("empty", True),
-        "error": parsed.get("error"),
-        "rowCount": len(parsed.get("rows", [])),
-        "colCount": len(parsed.get("columns", [])),
+        "periodType": slot["ptype"],
+        "periods": periods,
+        "rowCount": max((p["rowCount"] for p in filled), default=0),
+        "colCount": max((p["colCount"] for p in filled), default=0),
+        "empty": not filled,
+        "error": None if filled else next(
+            (p["error"] for p in periods if p["error"]), None),
     }
 
 

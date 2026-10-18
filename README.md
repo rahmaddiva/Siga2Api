@@ -41,6 +41,73 @@ bun run preview
 
 ---
 
+## Periode (bulan / tahun)
+
+Setiap tabel punya **deret periode** yang bisa dipilih di UI:
+
+- Laporan **bulanan** (`reportCategory` mengandung `Bulanan`) → chip per bulan: `Jan 2026`, `Feb 2026`, …
+- Laporan **tahunan** / kumulatif / verval → chip per tahun: `2025`, `2026`
+
+Chip yang tidak punya data tetap ditampilkan tapi diredupkan, dengan tooltip
+"belum ada data", supaya terlihat jelas periode mana yang kosong. Kalau **semua**
+periode kosong, muncul peringatan kuning di atas tabel.
+
+### Memanen beberapa periode
+
+```bash
+# Semua bulan Jan–Okt 2026 + tahunan 2026
+python scripts/build_snapshot.py --years 2026 --months 1-10
+
+# Beberapa tahun + hanya Desember
+python scripts/build_snapshot.py --years 2024,2025,2026 --months 12
+
+# Hanya laporan tahunan (lebih cepat)
+python scripts/build_snapshot.py --skip-monthly
+
+# Hanya laporan bulanan
+python scripts/build_snapshot.py --skip-annual --months 1-10
+```
+
+Struktur file mengikuti periode:
+
+```
+public/data/yankb/YanKB-Tahunan-Kec__Tabel1__2026.json
+public/data/yankb/YanKB-Bulanan-Kec__Tabel3__2026-10.json
+public/data/dallap/Dallap-Bulanan__Tabel1__2026-10.json
+```
+
+`index.json` mengelompokkan periode per tabel:
+
+```jsonc
+{
+  "module": "yankb",
+  "reportName": "Tabel3",
+  "periodType": "monthly",
+  "periods": [
+    { "key": "2026-10", "label": "Okt 2026", "file": "yankb/…__2026-10.json",
+      "empty": true, "rowCount": 0 },
+    { "key": "2026-09", "label": "Sep 2026", "file": "…", "empty": false, "rowCount": 12 }
+  ]
+}
+```
+
+### Catatan ketersediaan data
+
+Hasil panen nyata untuk Kab. Tanah Laut (Okt 2026):
+
+| Modul | Tahunan | Bulanan |
+|---|---|---|
+| YAN KB | berisi data | **kosong** untuk semua bulan — pelaporan bulanan YAN KB diisi di tingkat lain |
+| DALLAP | berisi data | kosong (kecuali `Dallap-RekapBulanan` yang mengembalikan body kosong) |
+| KRS | berisi data | — |
+| ELSIMIL | berisi data | berisi data, **tapi isinya identik tiap bulan** — server tampaknya mengabaikan `periode` untuk modul ini |
+
+Tabel terakhir itu temuan, bukan bug UI: `Catin-Bulanan/Tabel1` dengan
+`periode=2026-01`, `2026-05`, dan `2026-10` menghasilkan body byte-identik.
+Jadi untuk ELSIMIL, angka bulanan belum bisa dipercaya sebagai potret per bulan.
+
+---
+
 ## Membangun ulang snapshot data
 
 Snapshot disimpan di `public/data/` dan ikut ter-commit supaya web bisa jalan tanpa token.

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Index, ReportEntry } from './lib/data'
-import { groupRank, loadIndex } from './lib/data'
+import type { Index, PeriodEntry, ReportEntry } from './lib/data'
+import { groupRank, loadIndex, pickInitialPeriod } from './lib/data'
 import { Sidebar } from './components/Sidebar'
 import { ReportView } from './components/ReportView'
 import { Overview } from './components/Overview'
@@ -10,6 +10,7 @@ export function App() {
   const [error, setError] = useState<string | null>(null)
   const [activeModule, setActiveModule] = useState('yankb')
   const [active, setActive] = useState<ReportEntry | null>(null)
+  const [activePeriod, setActivePeriod] = useState<PeriodEntry | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
@@ -33,10 +34,22 @@ export function App() {
     setActive(best ?? list[0] ?? null)
   }, [index, activeModule])
 
+  // Periode ikut direset saat laporan berganti, sejalan dengan periode awal
+  // yang dipilih ReportView.
+  useEffect(() => {
+    setActivePeriod(active ? pickInitialPeriod(active.periods) : null)
+  }, [active])
+
   const downloadCsv = useMemo(
     () => () => {
       if (!active) return
-      fetch(`/data/${active.file}`)
+      const selected =
+        activePeriod && active.periods.some((p) => p.key === activePeriod.key)
+          ? activePeriod
+          : null
+      const period = selected ?? pickInitialPeriod(active.periods)
+      if (!period) return
+      fetch(`/data/${period.file}`)
         .then((r) => r.json())
         .then((d) => {
           const esc = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`
@@ -48,13 +61,13 @@ export function App() {
           const url = URL.createObjectURL(blob)
           const a = document.createElement('a')
           a.href = url
-          a.download = `${active.module}-${active.reportName}-${active.reportCategory}.csv`
+          a.download = `${active.module}-${active.reportName}-${period.key}.csv`
           a.click()
           URL.revokeObjectURL(url)
         })
         .catch(() => alert('Gagal mengunduh CSV.'))
     },
-    [active],
+    [active, activePeriod],
   )
 
   if (error) {
@@ -115,10 +128,10 @@ export function App() {
 
           <div className="ml-auto hidden items-center gap-2 sm:flex">
             <span className="tabular rounded-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-              {index.tahun}
+              {index.years.join(', ')}
             </span>
             <span className="rounded-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-              {index.totalReports} laporan
+              {index.totalReports} laporan · {index.totalPeriods} periode
             </span>
           </div>
         </div>
@@ -132,7 +145,7 @@ export function App() {
           <Sidebar
             index={index}
             activeModule={activeModule}
-            activeFile={active?.file ?? null}
+            activeReport={active}
             onSelectModule={(id) => {
               setActiveModule(id)
               setSidebarOpen(false)
@@ -147,7 +160,12 @@ export function App() {
         <main className="thin-scroll min-w-0 flex-1 overflow-y-auto">
           <div className="mx-auto max-w-[1400px] p-4 sm:p-6">
             {active ? (
-              <ReportView key={active.file} entry={active} onDownload={downloadCsv} />
+              <ReportView
+                key={`${active.module}-${active.reportName}-${active.reportCategory}`}
+                entry={active}
+                onDownload={downloadCsv}
+                onPeriodChange={setActivePeriod}
+              />
             ) : (
               <Overview
                 index={index}
