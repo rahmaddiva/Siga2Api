@@ -210,6 +210,37 @@ tetap mengembalikan kontrak yang sama: `title, subtitle, period, wilayah, column
 empty`. Jangan pernah mengisi `columns` dengan string kosong — pakai `Kolom N` sebagai
 fallback. Jangan menulis `period` berisi placeholder `null`.
 
+**Kontrak label periode tercetak (`printedPeriod`/`printedYear`/`periodStatus`).** Tiap
+file laporan sekarang juga membawa `printedPeriod` (teks periode yang dicetak di dalam
+dokumen, string|null), `printedYear` (int|null), dan `periodStatus`
+(`"match"`/`"mismatch"`/`"unknown"` — `match` = tahun tercetak = tahun diminta,
+`mismatch` = berbeda, `unknown` = tidak ada yang bisa diurai, mis. `TAHUN : null`).
+`index.json` → `periods[]` juga membawa `periodStatus`. File lama tanpa field ini harus
+dibaca sebagai `unknown` (UI tidak menampilkan peringatan untuk `unknown`/`match`).
+`--index-only` membaca `periodStatus` dari tiap file, default `unknown`.
+
+**Jangan hapus tabel mismatch dari snapshot.** Angkanya tetap data untuk periode yang
+diminta; penghapusan justru menyembunyikan fakta bahwa tabel terisi untuk tahun yang
+dicetak. Sinyalnya adalah peringatan di UI (banner kuning + penanda chip, lihat
+`src/components/ReportView.tsx`, `src/components/PeriodPicker.tsx`; ringkasan user-facing
+di README "Label periode basi di dokumen sumber").
+
+**Parser: jangan rusak lagi.** Dua bug yang sudah diperbaiki dan tidak boleh kambuh:
+(1) metadata periode harus menangani baris multi-sel dan pasangan label/nilai terpisah
+(`["PERIODE", ": SEMESTER II 2023"]`) — versi lama melewatinya sehingga label basi tak
+terdeteksi; (2) `is_index_row` harus menerima `/` dan `%` agar baris penomoran kolom
+seperti `6 = 5/4*100` dibuang, bukan bocor sebagai baris data pertama.
+
+**Tabel kepercayaan periode** (detail & bukti di README "Kapan angka boleh dipercaya"):
+
+| Modul | Perilaku |
+|---|---|
+| YAN KB tahunan | ✅ tahun dihormati |
+| ELSIMIL tahunan | ✅ tahun dihormati |
+| DALLAP tahunan | ⚠️ label tahun benar, angka statis antar tahun |
+| KRS Verval-Tabulasi (`report-siga-krs-ocp`, Tabel1/2/6) | ⚠️ hanya 2023 terisi (42 sel non-zero di Tabel1); tahun lain nol semua dengan label basi `PERIODE : SEMESTER II 2023` — file 2026 = data 2026 yang memang kosong, BUKAN data 2023 |
+| ELSIMIL bulanan | ❌ `periode` diabaikan, `TAHUN : null`, body byte-identik antar bulan |
+
 **Jangan tambahkan laporan by-name (PII).** Daftar pengecualian ada di `PII_REPORTS`
 dalam script; perluas set itu, jangan bikin filter terpisah.
 

@@ -144,6 +144,67 @@ def usable_period(t: str) -> str | None:
     return v if re.search(r"\d", v) else None
 
 
+# Nama/abreviasi bulan Indonesia yang muncul di label periode cetak.
+MONTH_WORDS = {
+    "januari": 1, "jan": 1, "februari": 2, "feb": 2, "maret": 3, "mar": 3,
+    "april": 4, "apr": 4, "mei": 5, "juni": 6, "jun": 6, "juli": 7, "jul": 7,
+    "agustus": 8, "agu": 8, "agt": 8, "september": 9, "sep": 9, "sept": 9,
+    "oktober": 10, "okt": 10, "november": 11, "nov": 11, "desember": 12, "des": 12,
+}
+
+
+def extract_printed_period(s: str | None) -> tuple[int | None, int | None]:
+    """Ambil (tahun, bulan) dari label periode yang DICETAK template.
+
+    Konservatif: kalau tahun tidak bisa dipastikan (tidak ada angka 4 digit,
+    atau ada beberapa tahun berbeda) kembalikan None — jangan menebak.
+    Bulan hanya diisi bila benar-benar tercetak (nama bulan / "YYYY-MM").
+    """
+    if not s:
+        return None, None
+    years = {int(y) for y in re.findall(r"(?<!\d)((?:19|20)\d{2})(?!\d)", s)}
+    year = years.pop() if len(years) == 1 else None
+
+    months = {MONTH_WORDS[w.lower()] for w in re.findall(r"[A-Za-z]+", s)
+              if w.lower() in MONTH_WORDS}
+    if len(months) > 1:
+        months = set()  # ambigu -> anggap bulan tidak tercetak
+    if not months:
+        m = (re.search(r"(?<!\d)(?:19|20)\d{2}-(0[1-9]|1[0-2])(?!\d)", s)
+             or re.search(r"(?<!\d)(0[1-9]|1[0-2])/(?:19|20)\d{2}(?!\d)", s))
+        if m:
+            months = {int(m.group(1))}
+    month = months.pop() if len(months) == 1 else None
+    return year, month
+
+
+def period_status(printed_period: str | None, requested_key: str) -> str:
+    """Status tri-state: "match" | "mismatch" | "unknown".
+
+    Sengaja tri-state, bukan boolean: sebagian template mencetak label basi
+    ("SEMESTER II 2023" untuk tahun apa pun) atau tidak mencetak periode sama
+    sekali ("TAHUN : null"). "Tidak tahu" harus bisa dibedakan dari "cocok".
+    """
+    year, month = extract_printed_period(printed_period)
+    if year is None:
+        return "unknown"
+    parts = str(requested_key or "").split("-")
+    try:
+        req_year = int(parts[0])
+    except (TypeError, ValueError):
+        return "unknown"
+    if year != req_year:
+        return "mismatch"
+    if len(parts) > 1:
+        try:
+            req_month = int(parts[1])
+        except (TypeError, ValueError):
+            return "unknown"
+        if month is not None and month != req_month:
+            return "mismatch"
+    return "match"
+
+
 def cell_text(inner: str) -> str:
     txt = re.sub(r"<br\s*/?>", " ", inner)
     txt = re.sub(r"<[^>]+>", "", txt)
@@ -200,13 +261,15 @@ def parse_report(html: str) -> dict:
 
     if not grid or width == 0:
         return {"title": None, "subtitle": None, "period": None,
-                "wilayah": {}, "columns": [], "rows": [], "empty": True}
+                "printedPeriod": None, "wilayah": {}, "columns": [], "rows": [],
+                "empty": True}
 
     # JasperReports menandai hasil kosong dengan teks khusus, bukan tabel kosong.
     flat_upper = " ".join(v for row in grid for v in row).upper()
     if "DATA TIDAK DITEMUKAN" in flat_upper:
         return {"title": None, "subtitle": None, "period": None,
-                "wilayah": {}, "columns": [], "rows": [], "empty": True}
+                "printedPeriod": None, "wilayah": {}, "columns": [], "rows": [],
+                "empty": True}
 
     def is_table_header_row(row: list[str]) -> bool:
         """Baris judul kolom tabel (bukan metadata), mis. NO/KODE/KECAMATAN."""
@@ -237,6 +300,10 @@ def parse_report(html: str) -> dict:
 
     # --- 2. metadata dokumen
     title = subtitle = period = None
+    # Label periode apa adanya dari halaman (satu-satunya ground truth cetak).
+    printed_period = None
+    # Label periode yang nilainya dicetak di baris berikutnya, mis. ["TAHUN :"].
+    pending_label = None
     wilayah: dict[str, str] = {}
     # Metadata dicetak sebelum tabel; berhenti di baris judul kolom pertama.
     for row in grid[:24]:
@@ -247,6 +314,29 @@ def parse_report(html: str) -> dict:
             break
         for key, val in wilayah_pairs(vals):
             wilayah.setdefault(key, val)
+
+        # Periode bisa dicetak tiga bentuk: satu sel ("TAHUN: 2026"), dua sel
+        # (["PERIODE", ": SEMESTER II 2023"]) atau label & nilai terpisah
+        # (["TAHUN :"] lalu ["2026"]). Cocokkan pada baris yang sudah digabung.
+        joined = re.sub(r"\s+", " ", " ".join(vals)).strip()
+        if pending_label:
+            if re.fullmatch(r"[\d/\-.\s]+", joined):
+                joined = f"{pending_label} {joined}"
+            pending_label = None
+        if re.match(r"(?i)^(TAHUN|PERIODE)\b", joined):
+            val = usable_period(joined)
+            if val:
+                period = period or val
+                printed_period = printed_period or joined
+            elif re.fullmatch(r"(?i)(TAHUN|PERIODE)\s*:?", joined):
+                # Placeholder tanpa nilai ("TAHUN :") -> tunggu baris berikut.
+                pending_label = joined
+            else:
+                # Placeholder berisi nilai tak terpakai ("TAHUN : null"):
+                # simpan mentahnya agar bisa dibedakan dari "tidak tercetak".
+                printed_period = printed_period or joined
+            continue
+
         if len(vals) == 1:
             t = vals[0]
             if t.upper().startswith("TABEL") and not title:
@@ -255,9 +345,6 @@ def parse_report(html: str) -> dict:
                   and not t.upper().startswith("TAHUN")
                   and not re.fullmatch(r"null", t, re.I)):
                 subtitle = t
-            elif t.upper().startswith(("TAHUN", "PERIODE")):
-                # Template ELSIMIL kadang mencetak "TAHUN null" / "TAHUN :".
-                period = usable_period(t) or period
 
     # --- 3. blok header
     header_idx = None
@@ -270,11 +357,14 @@ def parse_report(html: str) -> dict:
             break
 
     def is_index_row(row: list[str]) -> bool:
-        """Baris penomoran kolom: (1) (2) (3) 3=4+12+13 — bukan header, bukan data."""
+        """Baris penomoran kolom: (1) (2) (3) 3=4+12+13 6=5/4*100 — bukan header/data."""
         vals = [v for v in row if v]
         if len(vals) < 3:
             return False
-        return all(re.fullmatch(r"[\d\s.,=+\-∑Σ()*]*", v) and len(v) <= 14 for v in vals)
+        # `/` dan `%` ikut diizinkan: rumus kolom sering ditulis "6 = 5/4*100".
+        # Aman karena semua sel harus pendek & numerik — baris data selalu punya
+        # nama kecamatan/desa, yang tidak cocok dengan pola ini.
+        return all(re.fullmatch(r"[\d\s.,=+\-∑Σ()*/%]*", v) and len(v) <= 14 for v in vals)
 
     def has_text(row: list[str]) -> bool:
         return any(re.search(r"[A-Za-z]{2,}", v) for v in row)
@@ -282,6 +372,7 @@ def parse_report(html: str) -> dict:
     if header_idx is None:
         body = [r for r in grid if any(r)]
         return {"title": title, "subtitle": subtitle, "period": period,
+                "printedPeriod": printed_period,
                 "wilayah": wilayah, "columns": [], "rows": body,
                 "empty": not any(any(x.strip() for x in r) for r in body)}
 
@@ -406,8 +497,12 @@ def parse_report(html: str) -> dict:
             filled.append(index_label(i))
     columns = filled
 
+    # `printedPeriod` = label periode apa adanya dari halaman. `periodStatus`
+    # TIDAK dihitung di sini: parse_report murni HTML->dict dan tidak tahu
+    # periode yang diminta. Status dihitung pemanggil (lihat `work`).
     return {
         "title": title, "subtitle": subtitle, "period": period,
+        "printedPeriod": printed_period,
         "wilayah": wilayah, "columns": columns, "colNumbers": col_numbers,
         "rows": rows, "empty": not rows,
     }
@@ -550,7 +645,9 @@ def main():
         except Exception as e:  # noqa: BLE001
             stub = {"title": rep["reportName"],
                     "subtitle": rep.get("reportDescription", ""),
-                    "period": None, "wilayah": {}, "columns": [], "rows": [],
+                    "period": None, "printedPeriod": None, "printedYear": None,
+                    "periodStatus": "unknown",
+                    "wilayah": {}, "columns": [], "rows": [],
                     "empty": True, "error": f"{type(e).__name__}: {e}"[:200],
                     **base_meta}
             with open(path, "w", encoding="utf-8") as f:
@@ -558,6 +655,11 @@ def main():
             return ("err", job, stub, fname)
 
         parsed = parse_report(html)
+        # Status tri-state dihitung di sini karena hanya pemanggil yang tahu
+        # periode yang DIMINTA (parse_report sengaja murni HTML->dict).
+        printed = parsed.get("printedPeriod")
+        parsed["printedYear"] = extract_printed_period(printed)[0]
+        parsed["periodStatus"] = period_status(printed, key)
         parsed.update(base_meta)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(parsed, f, ensure_ascii=False, separators=(",", ":"))
@@ -591,6 +693,7 @@ def main():
                 "error": parsed.get("error"),
                 "rowCount": len(parsed.get("rows", [])),
                 "colCount": len(parsed.get("columns", [])),
+                "periodStatus": parsed.get("periodStatus") or "unknown",
             })
 
     index = merge_index(args, [entry_from(slot) for slot in by_id.values()], mods)
@@ -645,6 +748,8 @@ def collect_local(args) -> list[dict]:
                 "error": parsed.get("error"),
                 "rowCount": len(parsed.get("rows", [])),
                 "colCount": len(parsed.get("columns", [])),
+                # Berkas lama (sebelum perubahan ini) belum punya periodStatus.
+                "periodStatus": parsed.get("periodStatus") or "unknown",
             })
     return [entry_from(slot) for slot in by_id.values()]
 

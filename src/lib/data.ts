@@ -6,6 +6,7 @@ export type PeriodEntry = {
   error?: string | null
   rowCount: number
   colCount: number
+  periodStatus?: 'match' | 'mismatch' | 'unknown'
 }
 
 export type ReportEntry = {
@@ -53,6 +54,9 @@ export type ReportData = {
   periodKey: string
   periodLabel: string
   fetchedAt: string
+  printedPeriod?: string | null
+  printedYear?: number | null
+  periodStatus?: 'match' | 'mismatch' | 'unknown'
 }
 
 const cache = new Map<string, unknown>()
@@ -127,4 +131,42 @@ export function cleanDescription(desc: string): string {
     .replace(/^TABLE\s+[\dA-Z]+\s*[-–]\s*/i, '')
     .replace(/\s*-\s*\((bulanan|tahunan|kumulatif)\)\s*$/i, '')
     .trim()
+}
+
+/** Kolom identitas yang bukan data: nomor urut, kode/wilayah, dan hitung desa. */
+const IDENTITY_COLUMNS: Record<string, true> = {
+  no: true,
+  'no.': true,
+  kode: true,
+  kecamatan: true,
+  kelurahan: true,
+  desa: true,
+  'yang ada': true,
+}
+
+/**
+ * Apakah semua nilai data laporan efektif nol? Dipakai untuk banner mismatch:
+ * tabel bisa punya baris (empty=false) tapi seluruh kolom data berisi "0",
+ * jadi jangan mengira itu bukti data terisi.
+ *
+ * - Lewati kolom identitas (label cocok NO/KODE/KECAMATAN/KELURAHAN/DESA/YANG ADA,
+ *   case-insensitive) dan sel yang tidak bisa diurai sebagai angka
+ *   (mis. placeholder "%" berisi "\uFFFD"/"-"/kosong).
+ * - true hanya bila ada minimal satu sel numerik dan semuanya 0;
+ *   tanpa sel numerik sama sekali → false (tidak ada yang bisa dinilai).
+ */
+export function isAllDataZero(data: Pick<ReportData, 'columns' | 'rows'>): boolean {
+  let seen = false
+  for (const row of data.rows) {
+    for (let i = 0; i < row.length; i++) {
+      const label = data.columns[i]?.trim().toLowerCase() ?? ''
+      if (IDENTITY_COLUMNS[label]) continue
+      // Buang pemisah ribuan lalu coba urai; sel non-numerik dilewati.
+      const n = Number(row[i]?.replace(/\s|\u00A0/g, '').replace(/\./g, '').replace(/,/g, '.'))
+      if (!Number.isFinite(n)) continue
+      seen = true
+      if (n !== 0) return false
+    }
+  }
+  return seen
 }

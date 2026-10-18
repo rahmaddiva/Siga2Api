@@ -93,18 +93,14 @@ public/data/dallap/Dallap-Bulanan__Tabel1__2026-10.json
 
 ### Catatan ketersediaan data
 
-Hasil panen nyata untuk Kab. Tanah Laut (Okt 2026):
+Hasil panen nyata untuk Kab. Tanah Laut (Okt 2026): tabel bulanan **YAN KB dan DALLAP
+kosong** (pelaporan bulanan diisi di tingkat lain); tahunan berisi data, dengan
+kepercayaan periode yang berbeda per modul — lihat tabel tunggal
+**"Kapan angka boleh dipercaya"** di bawah.
 
-| Modul | Tahunan | Bulanan |
-|---|---|---|
-| YAN KB | berisi data | **kosong** untuk semua bulan — pelaporan bulanan YAN KB diisi di tingkat lain |
-| DALLAP | berisi data | kosong (kecuali `Dallap-RekapBulanan` yang mengembalikan body kosong) |
-| KRS | berisi data | — |
-| ELSIMIL | berisi data | berisi data, **tapi isinya identik tiap bulan** — server tampaknya mengabaikan `periode` untuk modul ini |
-
-Tabel terakhir itu temuan, bukan bug UI: `Catin-Bulanan/Tabel1` dengan
-`periode=2026-01`, `2026-05`, dan `2026-10` menghasilkan body byte-identik.
-Jadi untuk ELSIMIL, angka bulanan belum bisa dipercaya sebagai potret per bulan.
+Bukti untuk ELSIMIL bulanan: `Catin-Bulanan/Tabel1` dengan `periode=2026-01`,
+`2026-05`, dan `2026-10` menghasilkan body byte-identik. Jadi untuk ELSIMIL, angka
+bulanan belum bisa dipercaya sebagai potret per bulan.
 
 ---
 
@@ -122,12 +118,12 @@ python scripts/build_snapshot.py --out public/data --workers 8
 
 # Opsi lain
 python scripts/build_snapshot.py --only yankb          # satu modul saja
-python scripts/build_snapshot.py --tahun 2025          # tahun lain
-python scripts/build_snapshot.py --bulan 9             # periode bulanan lain
+python scripts/build_snapshot.py --years 2025          # tahun lain
+python scripts/build_snapshot.py --months 9            # periode bulanan lain
 python scripts/build_snapshot.py --force               # abaikan cache
 ```
 
-Default: `--prov 22 --kab 322 --tahun 2026 --bulan 10` (Tanah Laut, 2026, Oktober).
+Default: `--prov 22 --kab 322 --years 2026 --months 1-10` (Tanah Laut, 2026, Jan–Okt).
 
 Script ini **resumable**: laporan yang sudah ada di `public/data/` tidak diambil ulang
 kecuali `--force`.
@@ -173,13 +169,60 @@ src/
   "reportName": "Tabel1",
   "reportCategory": "YanKB-Tahunan-Kec",
   "description": "TABEL 1 - JUMLAH TEMPAT PELAYANAN KB BERDASARKAN JENIS",
-  "fetchedAt": "2026-10-18T02:10:00"
+  "periodKey": "2026",
+  "periodLabel": "2026",
+  "fetchedAt": "2026-10-18T02:10:00",
+  "printedPeriod": "TAHUN: 2026",
+  "printedYear": 2026,
+  "periodStatus": "match"
 }
 ```
 
+`printedPeriod` / `printedYear` adalah teks periode yang **dicetak di dalam dokumen**;
+`periodStatus` (`"match"` / `"mismatch"` / `"unknown"`) membandingkannya dengan periode
+yang diminta. `unknown` berarti tidak ada label yang bisa diurai (mis. `TAHUN : null`);
+file lama tanpa field ini dibaca sebagai `unknown`.
+
+### Label periode basi di dokumen sumber (PENTING)
+
+Beberapa templat SIGA mencetak label periode **hardcoded** yang tidak mengikuti parameter
+yang diminta. Ini ditemukan nyata dan tidak boleh disalahartikan sebagai data salah:
+
+- **KRS tabulasi** (`report-siga-krs-ocp`, kategori `Verval-Tabulasi`, Tabel1/2/6) selalu
+  mencetak `PERIODE : SEMESTER II 2023`, apa pun `tahun` yang diminta.
+- **Data tetap mengikuti `tahun` yang diminta**: `tahun=2023` memang mengembalikan angka
+  sungguhan (Tabel1 berisi 42 sel non-zero), sedangkan tahun lain (2015–2027)
+  mengembalikan body **nol semua dengan label 2023 itu**. Jadi file tersimpan 2026 adalah
+  **data 2026 yang memang kosong, dengan label basi** — BUKAN data 2023. Angkanya benar
+  per tahun; yang basi hanya labelnya.
+- **ELSIMIL bulanan** (`Catin-Bulanan` dkk.) mencetak `TAHUN : null` dan **mengabaikan
+  `periode` sepenuhnya** — body byte-identik antara `2026-01`, `2026-10`, `2025-03`.
+- **YAN KB dan ELSIMIL tahunan** menghormati tahun dengan benar. **DALLAP tahunan**
+  mencetak tahun yang benar tapi angkanya statis antar tahun.
+
+Karena itu tabel mismatch **sengaja tidak dikeluarkan dari snapshot**: angka tetap valid
+untuk periode yang diminta, dan tabel yang diisi hanya untuk tahun yang dicetak justru
+harus tetap terlihat. Sinyalnya adalah peringatan, bukan penghapusan — UI menampilkan
+banner kuning di atas tabel plus penanda di chip periode (lihat
+`src/components/ReportView.tsx` dan `PeriodPicker.tsx`).
+
+### Kapan angka boleh dipercaya
+
+| Modul / jenis | `tahun`/`periode` dihormati? | Catatan |
+|---|---|---|
+| YAN KB tahunan | ✅ ya | label dan angka sesuai permintaan |
+| ELSIMIL tahunan | ✅ ya | — |
+| DALLAP tahunan | ⚠️ label saja | tahun tercetak benar, angka statis antar tahun |
+| KRS tabulasi (Verval-Tabulasi) | ⚠️ hanya 2023 | hanya tahun 2023 yang terisi; tahun lain nol dengan label 2023 |
+| ELSIMIL bulanan | ❌ tidak | `periode` diabaikan; `TAHUN : null`; body identik antar bulan |
+
 Parser (`parse_report`) mengekspansi `colspan`/`rowspan` JasperReports menjadi grid 2D,
 menggabungkan header multi-tingkat jadi nama kolom, dan membuang baris penomoran kolom
-(`(1) (2) (3)` / `3=4+12+13`).
+(`(1) (2) (3)` / `3=4+12+13`). Metadata periode kini juga menangani baris multi-sel dan
+baris label/nilai terpisah — mis. `["PERIODE", ": SEMESTER II 2023"]` — yang sebelumnya
+dilewati sehingga label basi tak terdeteksi; `is_index_row` kini juga menerima `/` dan `%`
+agar baris penomoran seperti `6 = 5/4*100` tidak bocor jadi baris data pertama. Mode
+`--index-only` membaca `periodStatus` dari tiap file, default `unknown`.
 
 ---
 

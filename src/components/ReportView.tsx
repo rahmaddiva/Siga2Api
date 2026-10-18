@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PeriodEntry, ReportData, ReportEntry } from '../lib/data'
-import { cleanDescription, loadReport, pickInitialPeriod } from '../lib/data'
+import { cleanDescription, isAllDataZero, loadReport, pickInitialPeriod } from '../lib/data'
 import { DataTable } from './DataTable'
 import { PeriodPicker } from './PeriodPicker'
 
@@ -127,6 +127,32 @@ export function ReportView({ entry, onDownload, onPeriodChange }: Props) {
               : 'tahun'}{' '}
             yang dipanen. Laporan ini mungkin diisi pada tingkat wilayah lain (provinsi),
             atau memang belum ada pelaporan pada periode tersebut.
+          </p>
+        </div>
+      )}
+
+      {data && data.periodStatus === 'mismatch' && (
+        <div role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="font-semibold">Periode laporan tidak cocok</p>
+          <p className="mt-0.5 text-amber-800">
+            Laporan ini diminta untuk periode {data.periodLabel}
+            {data.printedPeriod ? (
+              <>
+                , tetapi dokumen yang dikembalikan mencetak &quot;{data.printedPeriod}&quot;.
+              </>
+            ) : (
+              ', tetapi dokumen yang dikembalikan mencetak periode lain.'
+            )}{' '}
+            Angka di bawah adalah data untuk periode yang diminta, namun label pada dokumen
+            sumber tidak diperbarui.
+            {(data.empty || isAllDataZero(data)) && (
+              <>
+                {' '}
+                Tabel ini tidak memuat angka selain nol: templat sumber tampaknya hanya
+                terisi untuk tahun yang dicetak, sehingga nilai nol di sini kemungkinan
+                berarti &quot;belum ada data pada periode ini&quot;, bukan nol sesungguhnya.
+              </>
+            )}
           </p>
         </div>
       )}
