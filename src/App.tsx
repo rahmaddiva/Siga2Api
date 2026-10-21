@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Index, PeriodEntry, ReportEntry } from './lib/data'
-import { groupRank, loadIndex, pickInitialPeriod } from './lib/data'
-import { Sidebar } from './components/Sidebar'
-import { ReportView } from './components/ReportView'
-import { Overview } from './components/Overview'
+import { BarChart3, Menu } from 'lucide-react'
+
+import type { Index, PeriodEntry, ReportData, ReportEntry } from '@/lib/data'
+import { groupRank, loadIndex, pickInitialPeriod } from '@/lib/data'
+import { Sidebar } from '@/components/Sidebar'
+import { ReportView } from '@/components/ReportView'
+import { Overview } from '@/components/Overview'
+import { VervalView } from '@/components/VervalView'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 
 export function App() {
   const [index, setIndex] = useState<Index | null>(null)
@@ -40,32 +47,30 @@ export function App() {
     setActivePeriod(active ? pickInitialPeriod(active.periods) : null)
   }, [active])
 
+  /**
+   * Unduh tabel yang SEDANG tampil. `data` dioper dari ReportView supaya CSV
+   * ikut berisi hasil saringan (kecamatan/desa), bukan snapshot kabupaten.
+   */
   const downloadCsv = useMemo(
-    () => () => {
+    () => (data: ReportData, suffix: string) => {
       if (!active) return
-      const selected =
-        activePeriod && active.periods.some((p) => p.key === activePeriod.key)
+      const period =
+        (activePeriod && active.periods.some((p) => p.key === activePeriod.key)
           ? activePeriod
-          : null
-      const period = selected ?? pickInitialPeriod(active.periods)
+          : null) ?? pickInitialPeriod(active.periods)
       if (!period) return
-      fetch(`/data/${period.file}`)
-        .then((r) => r.json())
-        .then((d) => {
-          const esc = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`
-          const lines = [
-            d.columns.map(esc).join(','),
-            ...d.rows.map((row: string[]) => row.map(esc).join(',')),
-          ]
-          const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' })
-          const url = URL.createObjectURL(blob)
-          const a = document.createElement('a')
-          a.href = url
-          a.download = `${active.module}-${active.reportName}-${period.key}.csv`
-          a.click()
-          URL.revokeObjectURL(url)
-        })
-        .catch(() => alert('Gagal mengunduh CSV.'))
+      const esc = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`
+      const lines = [
+        data.columns.map(esc).join(','),
+        ...data.rows.map((row) => row.map(esc).join(',')),
+      ]
+      const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${active.module}-${active.reportName}-${period.key}${suffix}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
     },
     [active, activePeriod],
   )
@@ -73,14 +78,19 @@ export function App() {
   if (error) {
     return (
       <main className="mx-auto max-w-xl p-8">
-        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-5">
-          <h1 className="font-semibold text-red-900">Data belum tersedia</h1>
-          <p className="mt-1 text-sm text-red-800">{error}</p>
-          <p className="mt-3 text-sm text-red-700">
-            Jalankan <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">python scripts/build_snapshot.py</code>{' '}
-            untuk membangun snapshot terlebih dahulu.
-          </p>
-        </div>
+        <Alert variant="destructive">
+          <AlertTitle>Data belum tersedia</AlertTitle>
+          <AlertDescription>
+            <p>{error}</p>
+            <p className="text-destructive/90">
+              Jalankan{' '}
+              <code className="rounded bg-card px-1.5 py-0.5 font-mono text-xs">
+                python scripts/build_snapshot.py
+              </code>{' '}
+              untuk membangun snapshot terlebih dahulu.
+            </p>
+          </AlertDescription>
+        </Alert>
       </main>
     )
   }
@@ -88,94 +98,109 @@ export function App() {
   if (!index) {
     return (
       <div className="flex h-dvh items-center justify-center">
-        <p className="text-sm text-muted-foreground" role="status">Memuat katalog laporan…</p>
+        <p className="text-sm text-muted-foreground" role="status">
+          Memuat katalog laporan…
+        </p>
       </div>
     )
   }
 
+  // Dirender dua kali (aside desktop + Sheet mobile) dengan idPrefix berbeda
+  // agar id DOM tidak kembar.
+  const renderSidebar = (idPrefix: string) => (
+    <Sidebar
+      index={index}
+      activeModule={activeModule}
+      activeReport={active}
+      idPrefix={idPrefix}
+      onSelectModule={(id) => {
+        setActiveModule(id)
+        // Modul Verval KRS tidak punya laporan snapshot: kosongkan pilihan
+        // supaya area konten menampilkan tampilan live, bukan laporan lama.
+        if (id === 'verval') setActive(null)
+        setSidebarOpen(false)
+      }}
+      onSelectReport={(r) => {
+        setActive(r)
+        setSidebarOpen(false)
+      }}
+    />
+  )
+
   return (
-    <div className="flex h-dvh flex-col">
-      <header className="shrink-0 border-b border-border bg-card">
-        <div className="flex items-center gap-3 px-3 py-2.5 sm:px-5">
-          <button
-            type="button"
-            onClick={() => setSidebarOpen((v) => !v)}
-            aria-expanded={sidebarOpen}
-            aria-controls="sidebar"
-            aria-label="Buka daftar laporan"
-            className="cursor-pointer rounded-lg border border-border p-2 text-foreground transition-colors duration-150 hover:bg-muted lg:hidden"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="size-5" aria-hidden="true">
-              <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />
-            </svg>
-          </button>
+    <>
+      <div className="flex h-dvh flex-col">
+        <header className="sticky top-0 z-30 shrink-0 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
+          <div className="flex items-center gap-3 px-3 py-2.5 sm:px-5">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Buka daftar laporan"
+              className="lg:hidden"
+            >
+              <Menu />
+            </Button>
 
-          <div className="flex min-w-0 items-center gap-2.5">
-            <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-white">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="size-5" aria-hidden="true">
-                <path d="M4 19V9m5 10V5m5 14v-7m5 7V8" strokeLinecap="round" />
-              </svg>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
+                <BarChart3 className="size-5" aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="truncate text-sm leading-tight font-semibold sm:text-base">
+                  Siga2Api
+                </h1>
+                <p className="truncate text-xs text-muted-foreground">
+                  Data Laporan KB — Kab. Tanah Laut, Kalimantan Selatan
+                </p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <h1 className="truncate text-sm font-semibold leading-tight text-foreground sm:text-base">
-                Siga2Api
-              </h1>
-              <p className="truncate text-xs text-muted-foreground">
-                Data Laporan KB — Kab. Tanah Laut, Kalimantan Selatan
-              </p>
+
+            <div className="ml-auto hidden items-center gap-2 sm:flex">
+              <Badge variant="muted" className="tabular">
+                {index.years.join(', ')}
+              </Badge>
+              <Badge variant="muted">
+                {index.totalReports} laporan · {index.totalPeriods} periode
+              </Badge>
             </div>
           </div>
+        </header>
 
-          <div className="ml-auto hidden items-center gap-2 sm:flex">
-            <span className="tabular rounded-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-              {index.years.join(', ')}
-            </span>
-            <span className="rounded-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-              {index.totalReports} laporan · {index.totalPeriods} periode
-            </span>
-          </div>
+        <div className="flex min-h-0 flex-1">
+          <aside className="hidden w-80 shrink-0 border-r border-border bg-card lg:block">
+            {renderSidebar('sidebar-desktop')}
+          </aside>
+
+          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+            <SheetContent side="left" className="w-[min(21rem,88vw)] p-0 lg:hidden">
+              <SheetHeader>
+                <SheetTitle>Daftar laporan</SheetTitle>
+                <SheetDescription>Pilih modul, lalu pilih tabel yang ingin dilihat.</SheetDescription>
+              </SheetHeader>
+              <div className="min-h-0 flex-1">{renderSidebar('sidebar-mobile')}</div>
+            </SheetContent>
+          </Sheet>
+
+          <main className="thin-scroll min-w-0 flex-1 overflow-y-auto">
+            <div className="mx-auto max-w-[1400px] p-4 sm:p-6">
+              {activeModule === 'verval' && !active ? (
+                <VervalView onDownload={downloadCsv} />
+              ) : active ? (
+                <ReportView
+                  key={`${active.module}-${active.reportName}-${active.reportCategory}`}
+                  entry={active}
+                  onDownload={downloadCsv}
+                  onPeriodChange={setActivePeriod}
+                />
+              ) : (
+                <Overview index={index} moduleId={activeModule} onSelect={setActive} />
+              )}
+            </div>
+          </main>
         </div>
-      </header>
-
-      <div className="relative flex min-h-0 flex-1">
-        <div
-          id="sidebar"
-          className={`${sidebarOpen ? 'block' : 'hidden'} absolute inset-0 z-20 bg-card lg:static lg:block lg:w-80 lg:shrink-0`}
-        >
-          <Sidebar
-            index={index}
-            activeModule={activeModule}
-            activeReport={active}
-            onSelectModule={(id) => {
-              setActiveModule(id)
-              setSidebarOpen(false)
-            }}
-            onSelectReport={(r) => {
-              setActive(r)
-              setSidebarOpen(false)
-            }}
-          />
-        </div>
-
-        <main className="thin-scroll min-w-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-[1400px] p-4 sm:p-6">
-            {active ? (
-              <ReportView
-                key={`${active.module}-${active.reportName}-${active.reportCategory}`}
-                entry={active}
-                onDownload={downloadCsv}
-                onPeriodChange={setActivePeriod}
-              />
-            ) : (
-              <Overview
-                index={index}
-                moduleId={activeModule}
-                onSelect={(r) => setActive(r)}
-              />
-            )}
-          </div>
-        </main>
       </div>
-    </div>
+    </>
   )
 }

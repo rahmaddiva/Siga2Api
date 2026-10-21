@@ -1,13 +1,56 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { PeriodEntry, ReportData, ReportEntry } from '../lib/data'
-import { cleanDescription, isAllDataZero, loadReport, pickInitialPeriod } from '../lib/data'
-import { DataTable } from './DataTable'
-import { PeriodPicker } from './PeriodPicker'
+import { AlertTriangle, Download, Loader2, Radio } from 'lucide-react'
+
+import type { PeriodEntry, ReportData, ReportEntry } from '@/lib/data'
+import { cleanDescription, isAllDataZero, loadReport, pickInitialPeriod } from '@/lib/data'
+import { fetchLiveReport, type LiveResult } from '@/lib/live'
+import { DESA_AWARE_MODULES, loadWilayah } from '@/lib/wilayah'
+import { DataTable } from '@/components/DataTable'
+import { PeriodPicker } from '@/components/PeriodPicker'
+import { WilayahPicker } from '@/components/WilayahPicker'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 
 type Props = {
   entry: ReportEntry
-  onDownload: () => void
+  onDownload: (data: ReportData, suffix: string) => void
   onPeriodChange?: (p: PeriodEntry) => void
+}
+
+/** Nama kolom yang biasanya memuat nama desa/kelurahan. */
+const DESA_HEADER = /(desa|kelurahan|kel\/desa)/i
+
+/**
+ * Saring baris ke satu desa.
+ *
+ * `kelurahanId` diabaikan server untuk DALLAP/YAN KB/ELSIMIL, jadi penyaringan
+ * dilakukan di klien. Kolom desa dicari lewat NILAI sel, bukan judul kolom:
+ * header JasperReports kadang tetap "KECAMATAN" walau barisnya sudah desa, dan
+ * ELSIMIL Catin mencetak "KELURAHAN" berulang di beberapa kolom dengan nama
+ * hanya di kolom pertama. Judul hanya dipakai sebagai preferensi bila ada
+ * beberapa kolom yang cocok.
+ */
+function filterByDesa(data: ReportData, desaNama: string): ReportData {
+  const target = desaNama.trim().toUpperCase()
+  if (!target) return data
+
+  const candidates = data.columns
+    .map((label, i) => ({
+      i,
+      byHeader: DESA_HEADER.test(label.trim()) ? 1 : 0,
+      byValue: data.rows.some((r) => (r[i] ?? '').trim().toUpperCase() === target) ? 1 : 0,
+    }))
+    .filter((c) => c.byValue === 1)
+    .sort((a, b) => b.byHeader - a.byHeader)
+
+  const col = candidates[0]?.i
+  if (col === undefined) return { ...data, rows: [], empty: true }
+
+  const rows = data.rows.filter((r) => (r[col] ?? '').trim().toUpperCase() === target)
+  return { ...data, rows, empty: rows.length === 0 }
 }
 
 export function ReportView({ entry, onDownload, onPeriodChange }: Props) {
@@ -18,6 +61,13 @@ export function ReportView({ entry, onDownload, onPeriodChange }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const [kecamatanId, setKecamatanId] = useState<number | null>(null)
+  const [desaId, setDesaId] = useState<number | null>(null)
+  const [live, setLive] = useState<LiveResult | null>(null)
+  const [liveError, setLiveError] = useState<string | null>(null)
+  const [liveLoading, setLiveLoading] = useState(false)
+  const [wilayah, setWilayah] = useState<{ kecNama: string; desaNama: string } | null>(null)
+
   // Simpan callback di ref agar efek di bawah tidak ikut jalan saat induk
   // merender ulang dengan fungsi baru (bisa mereset periode pilihan pengguna).
   const notifyRef = useRef(onPeriodChange)
@@ -27,6 +77,16 @@ export function ReportView({ entry, onDownload, onPeriodChange }: Props) {
     const next = pickInitialPeriod(entry.periods)
     setPeriod(next)
     if (next) notifyRef.current?.(next)
+  }, [entry])
+
+  // Pilihan wilayah tidak berlaku lintas laporan: kecamatan berbeda punya
+  // desa berbeda, dan tidak semua modul dirinci per desa.
+  useEffect(() => {
+    setKecamatanId(null)
+    setDesaId(null)
+    setLive(null)
+    setLiveError(null)
+    setWilayah(null)
   }, [entry])
 
   useEffect(() => {
@@ -54,6 +114,76 @@ export function ReportView({ entry, onDownload, onPeriodChange }: Props) {
     }
   }, [period])
 
+  // Data live hanya diminta saat kecamatan dipilih; tanpa pilihan itu snapshot
+  // statis dipakai apa adanya (baris kecamatan).
+  useEffect(() => {
+    if (kecamatanId === null || !period) {
+      setLive(null)
+      setLiveError(null)
+      setLiveLoading(false)
+      return
+    }
+    const controller = new AbortController()
+    setLiveLoading(true)
+    setLiveError(null)
+    fetchLiveReport(entry, period, kecamatanId, controller.signal)
+      .then((r) => {
+        if (!controller.signal.aborted) setLive(r)
+      })
+      .catch((e: Error) => {
+        if (controller.signal.aborted) return
+        setLiveError(
+          e.name === 'AbortError'
+            ? 'Permintaan dibatalkan.'
+            : `${e.message} Data per kecamatan diambil langsung dari server SIGA, jadi butuh koneksi internet.`,
+        )
+        setLive(null)
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLiveLoading(false)
+      })
+    return () => controller.abort()
+  }, [entry, period, kecamatanId])
+
+  // Nama kecamatan/desa terpilih, dipakai untuk menyaring baris dan memberi
+  // konteks pada judul tabel.
+  useEffect(() => {
+    if (kecamatanId === null) {
+      setWilayah(null)
+      return
+    }
+    let alive = true
+    loadWilayah()
+      .then((w) => {
+        if (!alive) return
+        const kec = w.kecamatan.find((k) => k.id === kecamatanId)
+        const desa = kec?.desa.find((d) => d.id === desaId)
+        setWilayah({ kecNama: kec?.nama ?? '', desaNama: desa?.nama ?? '' })
+      })
+      .catch(() => {
+        if (alive) setWilayah(null)
+      })
+    return () => {
+      alive = false
+    }
+  }, [kecamatanId, desaId])
+
+  /** Sumber baris aktif: data live bila kecamatan dipilih, selain itu snapshot. */
+  const view = useMemo<ReportData | null>(() => {
+    if (kecamatanId !== null) {
+      if (!live) return null
+      return wilayah?.desaNama ? filterByDesa(live, wilayah.desaNama) : live
+    }
+    return data
+  }, [kecamatanId, live, data, wilayah])
+
+  /** Akhiran nama berkas CSV agar unduhan tidak tertukar antar wilayah. */
+  const downloadSuffix = wilayah
+    ? `-${wilayah.kecNama.toLowerCase().replace(/[^a-z0-9]+/g, '-')}${
+        wilayah.desaNama ? `-${wilayah.desaNama.toLowerCase().replace(/[^a-z0-9]+/g, '-')}` : ''
+      }`
+    : ''
+
   const periodSummary = useMemo(() => {
     const filled = entry.periods.filter((p) => !p.empty && !p.error)
     return { filled: filled.length, total: entry.periods.length }
@@ -62,49 +192,47 @@ export function ReportView({ entry, onDownload, onPeriodChange }: Props) {
   return (
     <section aria-labelledby="judul-laporan" className="min-w-0">
       <header className="mb-4">
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <span className="rounded-md bg-primary px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">
-            {entry.moduleLabel}
-          </span>
-          <span className="tabular rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+        <div className="mb-2 flex flex-wrap items-center gap-1.5">
+          <Badge>{entry.moduleLabel}</Badge>
+          <Badge variant="muted" className="tabular">
             {entry.reportName}
-          </span>
-          <span className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-            {entry.reportCategory}
-          </span>
-          <span className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-            {entry.periodType === 'monthly' ? 'Bulanan' : 'Tahunan'}
-          </span>
+          </Badge>
+          <Badge variant="outline">{entry.reportCategory}</Badge>
+          <Badge variant="outline">
+            {entry.periodType === 'monthly'
+              ? 'Bulanan'
+              : entry.periodType === 'cumulative'
+                ? 'Kumulatif'
+                : 'Tahunan'}
+          </Badge>
         </div>
 
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <h2
               id="judul-laporan"
-              className="text-balance text-xl font-semibold leading-snug text-foreground sm:text-2xl"
+              className="text-xl leading-snug font-semibold text-balance sm:text-2xl"
             >
               {entry.reportName} — {cleanDescription(entry.description)}
             </h2>
-            {data?.wilayah && Object.keys(data.wilayah).length > 0 && (
+            {view?.wilayah && Object.keys(view.wilayah).length > 0 && (
               <p className="mt-1 text-sm text-muted-foreground">
-                {Object.entries(data.wilayah)
+                {Object.entries(view.wilayah)
                   .map(([k, v]) => `${k.charAt(0).toUpperCase()}${k.slice(1)}: ${v}`)
                   .join(' · ')}
               </p>
             )}
           </div>
 
-          <button
+          <Button
             type="button"
-            onClick={onDownload}
-            disabled={!data || data.empty}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border-strong bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors duration-150 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+            variant="outline"
+            onClick={() => view && onDownload(view, downloadSuffix)}
+            disabled={!view || view.empty}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="size-4" aria-hidden="true">
-              <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <Download />
             Unduh CSV
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -118,75 +246,110 @@ export function ReportView({ entry, onDownload, onPeriodChange }: Props) {
         }}
       />
 
+      <WilayahPicker
+        kecamatanId={kecamatanId}
+        desaId={desaId}
+        onKecamatanChange={setKecamatanId}
+        onDesaChange={setDesaId}
+        desaAvailable={DESA_AWARE_MODULES[entry.module] === true}
+        disabled={loading || !period}
+      />
+
       {periodSummary.total > 0 && periodSummary.filled === 0 && (
-        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <p className="font-semibold">Belum ada data pada semua periode yang tersedia</p>
-          <p className="mt-0.5 text-amber-800">
-            Server SIGA mengembalikan tabel kosong untuk {entry.periodType === 'monthly'
-              ? 'setiap bulan'
-              : 'tahun'}{' '}
-            yang dipanen. Laporan ini mungkin diisi pada tingkat wilayah lain (provinsi),
-            atau memang belum ada pelaporan pada periode tersebut.
-          </p>
-        </div>
+        <Alert variant="warning" className="mb-4">
+          <AlertTriangle />
+          <AlertTitle>Belum ada data pada semua periode yang tersedia</AlertTitle>
+          <AlertDescription>
+            SIGA tidak mengembalikan data untuk{' '}
+            {entry.periodType === 'annual' ? 'tahun-tahun' : 'bulan-bulan'} yang tersedia. Laporan
+            ini mungkin diisi pada tingkat wilayah lain (provinsi), atau memang belum ada
+            pelaporan pada periode tersebut.
+          </AlertDescription>
+        </Alert>
       )}
 
-      {data && data.periodStatus === 'mismatch' && (
-        <div role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <p className="font-semibold">Periode laporan tidak cocok</p>
-          <p className="mt-0.5 text-amber-800">
-            Laporan ini diminta untuk periode {data.periodLabel}
-            {data.printedPeriod ? (
-              <>
-                , tetapi dokumen yang dikembalikan mencetak &quot;{data.printedPeriod}&quot;.
-              </>
+      {view && view.periodStatus === 'mismatch' && (
+        <Alert variant="warning" className="mb-4">
+          <AlertTriangle />
+          <AlertTitle>Periode laporan tidak cocok</AlertTitle>
+          <AlertDescription>
+            Laporan ini diminta untuk periode {view.periodLabel}
+            {view.printedPeriod ? (
+              <>, tetapi dokumen yang dikembalikan mencetak &quot;{view.printedPeriod}&quot;. </>
             ) : (
-              ', tetapi dokumen yang dikembalikan mencetak periode lain.'
-            )}{' '}
-            Angka di bawah adalah data untuk periode yang diminta, namun label pada dokumen
-            sumber tidak diperbarui.
-            {(data.empty || isAllDataZero(data)) && (
+              ', tetapi dokumen yang dikembalikan mencetak periode lain. '
+            )}
+            Angka di bawah adalah data untuk periode yang diminta, namun label pada dokumen sumber
+            tidak diperbarui.
+            {(view.empty || isAllDataZero(view)) && (
               <>
                 {' '}
-                Tabel ini tidak memuat angka selain nol: templat sumber tampaknya hanya
-                terisi untuk tahun yang dicetak, sehingga nilai nol di sini kemungkinan
-                berarti &quot;belum ada data pada periode ini&quot;, bukan nol sesungguhnya.
+                Tabel ini tidak memuat angka selain nol: templat sumber tampaknya hanya terisi untuk
+                tahun yang dicetak, sehingga nilai nol di sini kemungkinan berarti &quot;belum ada
+                data pada periode ini&quot;, bukan nol sesungguhnya.
               </>
             )}
-          </p>
-        </div>
+          </AlertDescription>
+        </Alert>
       )}
 
-      {loading && <TableSkeleton />}
+      {kecamatanId !== null && liveLoading && <TableSkeleton />}
+
+      {liveError && (
+        <Alert variant="warning" className="mb-4">
+          <AlertTriangle />
+          <AlertTitle>Gagal mengambil rincian per kecamatan</AlertTitle>
+          <AlertDescription>{liveError}</AlertDescription>
+        </Alert>
+      )}
+
+      {view && live && !liveError && (
+        <Alert className="mb-4">
+          <Radio />
+          <AlertTitle>Data live per kecamatan</AlertTitle>
+          <AlertDescription>
+            Tabel ini diambil langsung dari server SIGA saat halaman dibuka
+            {wilayah?.kecNama ? ` untuk Kec. ${wilayah.kecNama}` : ''}
+            {wilayah?.desaNama ? `, desa ${wilayah.desaNama}` : ''} — bukan dari snapshot statis.
+            Angka dapat berubah sewaktu-waktu.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {loading && kecamatanId === null && <TableSkeleton />}
 
       {error && (
-        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          <p className="font-semibold">Gagal memuat data</p>
-          <p className="mt-0.5 text-red-700">{error}</p>
-        </div>
+        <Alert variant="destructive">
+          <AlertTitle>Gagal memuat data</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
-      {!loading && data && data.error && (
-        <div role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <p className="font-semibold">Laporan ini gagal diambil dari server SIGA</p>
-          <p className="mt-0.5 text-amber-800">
-            Coba periode lain, atau jalankan ulang{' '}
-            <code className="rounded bg-white px-1 py-0.5 font-mono text-xs">
-              build_snapshot.py --force
-            </code>{' '}
-            saat server stabil.
-          </p>
-          <p className="tabular mt-1.5 text-xs text-amber-700">{data.error}</p>
-        </div>
+      {!loading && view && view.error && (
+        <Alert variant="warning" className="mb-4">
+          <AlertTriangle />
+          <AlertTitle>Laporan ini gagal diambil dari server SIGA</AlertTitle>
+          <AlertDescription>
+            <p>
+              Coba periode lain, atau jalankan ulang{' '}
+              <code className="rounded bg-card px-1 py-0.5 font-mono text-xs">
+                build_snapshot.py --force
+              </code>{' '}
+              saat server stabil.
+            </p>
+            <p className="tabular text-xs opacity-80">{view.error}</p>
+          </AlertDescription>
+        </Alert>
       )}
 
-      {!loading && data && <DataTable data={data} />}
+      {!loading && view && <DataTable data={view} />}
 
-      {!loading && data && !data.empty && (
+      {!loading && view && !view.empty && (
         <p className="mt-4 text-xs text-muted-foreground">
-          Periode {data.periodLabel} · sumber: SIGA BKKBN — snapshot statis diambil{' '}
-          {new Date(data.fetchedAt).toLocaleString('id-ID')}. Data bersifat agregat per
-          wilayah; tidak memuat identitas perorangan.
+          Periode {view.periodLabel} · sumber: SIGA BKKBN —{' '}
+          {live ? 'data live diambil' : 'snapshot statis diambil'}{' '}
+          {new Date(view.fetchedAt).toLocaleString('id-ID')}. Data bersifat agregat per wilayah;
+          tidak memuat identitas perorangan.
         </p>
       )}
     </section>
@@ -195,16 +358,20 @@ export function ReportView({ entry, onDownload, onPeriodChange }: Props) {
 
 function TableSkeleton() {
   return (
-    <div aria-busy="true" aria-label="Memuat data" className="animate-pulse">
-      <div className="mb-3 h-9 w-full max-w-xs rounded-lg bg-muted" />
+    <div aria-busy="true" aria-label="Memuat data" className="flex flex-col gap-3">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground" role="status">
+        <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+        Memuat tabel…
+      </div>
+      <Skeleton className="h-8 w-full max-w-xs" />
       <div className="overflow-hidden rounded-xl border border-border bg-card">
-        <div className="h-11 bg-muted" />
+        <Skeleton className="h-10 w-full rounded-none" />
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="flex gap-4 border-b border-border/60 px-4 py-3 last:border-0">
-            <div className="h-3 w-6 rounded bg-muted" />
-            <div className="h-3 flex-1 rounded bg-muted" />
-            <div className="h-3 w-16 rounded bg-muted" />
-            <div className="h-3 w-12 rounded bg-muted" />
+            <Skeleton className="h-3 w-6" />
+            <Skeleton className="h-3 flex-1" />
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-3 w-12" />
           </div>
         ))}
       </div>

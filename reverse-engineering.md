@@ -222,8 +222,10 @@ Respons: `200 text/html` berisi satu halaman JasperReports
 
 | Field | Dipakai | Nilai |
 |---|---|---|
-| `tahun` | tahunan | `"2026"` |
-| `periode` | bulanan | `"YYYY-MM"` (contoh `"2026-10"`) |
+| `tahun` | tahunan & bulanan | `"2026"` |
+| `bulan` | **bulanan (wajib)** | integer `1`–`12` (bukan string) |
+| `bulanAwal` / `bulanAkhir` | kumulatif `Bumil-`/`Pascasalin-`/`Baduta-` | integer; rentang bulan, mis. `1` + `10` |
+| `periode` | ⚠️ **diabaikan server** | `"YYYY-MM"` — jangan dipakai; jawabannya tabel kosong |
 | `semester` | KRS 2023/2024 | `"1"`/`"2"` |
 | `provinsiId` | semua | id numerik string |
 | `kabupatenId` | semua | id numerik string; `0`/absen = level provinsi |
@@ -249,9 +251,51 @@ filterPencarian = {
   reportCategory: catTable   // "YanKB-Bulanan-Kec" | "YanKB-Tahunan-Kec" | "YanKB-Tahunan"
 }
 ```
+Perhatikan: bundle mengirim `periode`, **bukan** `tahun`+`bulan`. Potongan itu
+didokumentasikan sebagai perilaku aplikasi aslinya; jangan ditiru — lihat koreksi
+filter bulanan di bawah.
 Terverifikasi live: `YanKB-Tahunan-Kec`/`Tabel1` → 200, 72.105 byte HTML.
 `YanKB-Bulanan-Kec`/`Tabel1` dengan `periode=2026-10` → 200, 1.567 byte
-(halaman kosong karena periode berjalan belum terisi), `Tabel1Kab` → 200 kosong.
+(halaman kosong karena `periode` diabaikan, **bukan** karena belum ada data);
+`Tabel1Kab` → 200 kosong. Filter yang benar (`tahun` + `bulan`) mengembalikan 365 `<td>`
+berisi angka — lihat tabel koreksi di bawah.
+
+**Filter bulanan — koreksi penting (terverifikasi live 2026-10, kab 322).**
+Bundle `chunks/11.js` membangun URL sebagai
+`{"tahun":<tahun>}` lalu menambahkan `"bulan":<bulan>` **hanya** bila
+`"Dallap-Bulanan" === catTable`. Uji langsung menunjukkan `periode` selalu
+diabaikan, dan `bulan` **juga** dihormati oleh kategori lain:
+
+| `reportCategory` | `periode` saja | `tahun` saja | `tahun`+`bulan` |
+|---|---|---|---|
+| `YanKB-Bulanan-Kec` | 11 `<td>` (kosong) | 365 `<td>` | 365 `<td>`, isi beda per bulan |
+| `Dallap-Bulanan` | 11 `<td>` (kosong) | 272 `<td>` | 272 `<td>`, isi beda per bulan |
+| `Dallap-RekapBulanan` | 0 byte | 9 `<td>` | 242 `<td>`, isi beda per bulan |
+| `Catin-Bulanan` (ELSIMIL) | 358 `<td>`, **identik antar bulan** | — | 358 `<td>`, beda antar bulan |
+
+Jadi untuk semua laporan `*Bulanan*` kirim **`tahun` + `bulan`**. Label yang
+dicetak laporan bulanan adalah `BULAN : OKT - 2026` (bukan `TAHUN :`), sehingga
+parser metadata harus mengenali prefiks `BULAN` juga.
+
+> ⚠️ Kolom "`tahun` saja" pada tabel di atas **bukan** hasil yang setara: jumlah
+> `<td>`-nya sama, tetapi label periode tercetak `null` dan **semua sel angka 0**.
+> Jangan simpulkan `bulan` opsional dari jumlah `<td>`. Ukur dengan sel numerik
+> non-nol: `YanKB-Bulanan-Kec/Tabel1` 2026 → `tahun` saja 25 sel, `tahun`+`bulan`
+> 138–146 sel.
+
+**Kumulatif (`*-Komulatif` / `*-Kumulatif`) — filter berbeda lagi.** Diukur dari
+sel non-nol `Tabel1`, 2026-10:
+
+| `reportCategory` | `tahun` | `tahun`+`bulan` | `tahun`+`bulanAwal`+`bulanAkhir` |
+|---|---|---|---|
+| `Catin-Komulatif` | 24 | **141** | 24 |
+| `Bumil-Komulatif` | 26 | 26 | **168** |
+| `Pascasalin-Komulatif` | 47 | 47 | **253** |
+| `Baduta-Kumulatif` | 29 | 29 | **220** |
+
+Jadi hanya `Catin-Komulatif` yang memakai `bulan`; tiga lainnya memakai rentang
+`bulanAwal`/`bulanAkhir`. Salah filter tidak menghasilkan tabel kosong — angkanya
+diam-diam jadi potongan tahun, yang lebih sulit dideteksi.
 
 **DALLAP** (`chunks/11.js`): pola sama, `reportCategory` =
 `Dallap-Tahunan-Prov-Kab-Kec` | `Dallap-Tahunan` | `Dallap-Bulanan` | `Dallap-RekapBulanan`.
@@ -282,6 +326,49 @@ Terverifikasi live: `Tabel4` + `STUNTING2025` + `kabupatenId=322` →
 `Catin-Tahunan|Bulanan|Komulatif`, `Bumil-*`, `Pascasalin-*`, `Baduta-*`, `ElsimilMbg`.
 Terverifikasi: `Catin-Tahunan`/`Tabel1` → 200, 67.635 byte, 350 `<td>`;
 `Bumil-Tahunan`/`Tabel1` → 200, 76.640 byte; `Baduta-Tahunan`/`Tabel1` → 200, 88.804 byte.
+
+### 5.3.1 Dimensi wilayah: `kecamatanId` mengubah BARIS, `kelurahanId` diabaikan
+
+Diverifikasi live 2026-10-21 (kab 322, kec Panyipatan 5844, desa Batu Tungku 55409).
+Ini yang membuat rincian per desa mungkin — dan sekaligus menjelaskan kenapa filter desa
+tidak bisa dikirim sebagai parameter.
+
+| Service | tanpa `kecamatanId` | `kecamatanId` | `kecamatanId`+`kelurahanId` |
+|---|---|---|---|
+| `report-siga-dallap-ocp` (`Tabel1`) | 28.143 B, baris kecamatan | 23.080 B, **baris desa** | **identik** dengan tanpa `kelurahanId` |
+| `report-siga-yankb-ocp` (`Tabel1`) | 72.105 B | 33.100 B, baris **faskes** | identik |
+| `report-siga-elsimil-ocp` (`Catin-Bulanan`) | 68.476 B | 64.642 B, baris desa | identik |
+| `report-siga-krs-ocp` (`Verval-Tabulasi`) | 53.850 B | 33.701 B, baris desa | 22.642 B, **baris RW** |
+| `pk23-portal-gw/report` (`STUNTING2025` `Tabel4`) | 110.714 B | 103.954 B, baris desa | 68.381 B, baris RW |
+
+Kesimpulan:
+
+1. `kecamatanId` dihormati **semua** service dan menurunkan granularitas baris satu tingkat
+   (kecamatan → desa).
+2. `kelurahanId` **hanya** dihormati `report-siga-krs-ocp` dan `pk23-portal-gw`. Untuk
+   DALLAP, YAN KB, dan ELSIMIL body-nya byte-identik (SHA-256 sama) — parameter itu
+   diabaikan, bukan "tidak ada data".
+3. Nama parameter lain juga diabaikan DALLAP: `id_kelurahan`, `desaId`, `kelurahan`,
+   `idKelurahan` semuanya menghasilkan body identik.
+4. **YAN KB tidak punya dimensi desa.** `kecamatanId` menyaring faskes, tetapi baris tetap
+   daftar faskes (Tabel1/T3/T5/T7A/T8A/T9A semuanya 0 baris bernama desa). Jadi filter desa
+   tidak bermakna untuk modul ini, dan aplikasi menonaktifkannya.
+
+Karena itu Siga2Api mengambil satu kecamatan lalu menyaring desa di klien, bukan meminta
+satu desa ke server.
+
+**Daftar wilayah** (`location-service`, terbuka tanpa token):
+
+```
+GET …/location-service/siga/location/getListKecamatanByIdKabupaten?id_kabupaten=322
+→ 11 kecamatan (Takisung 6157 … Bumi Makmur 6624)
+GET …/location-service/siga/location/getListKelurahanByIdKecamatan?id_kecamatan=5844
+→ 10 desa; tiap baris {id_kelurahan, nama_kelurahan, kodeDepdagri, id_kecamatan, …}
+```
+
+Total Kab. Tanah Laut: **11 kecamatan, 135 desa** (2–20 desa per kecamatan; Pelaihari 20,
+Takisung 12). `fetch` dari origin `localhost` berhasil — gateway memantulkan `Origin`
+(lihat §13.2), jadi aplikasi statis bisa memanggilnya tanpa proxy.
 
 ### 5.4 Service per modul (ringkas)
 
@@ -481,9 +568,55 @@ GET https://siga-api-gateway.bkkbn.go.id/modul-stunting-sigabaru/siga/stunting/g
 Authorization: Bearer <TOKEN>
 ```
 
-- `periode` = semester (`1`/`2`). **Tanpa `periode` → 404.**
+- `periode` = semester (`1`/`2`). **Tanpa `periode` bukan 404** — lihat koreksi di §8.0.
 - Respons: `{"data":[{…}]}`; frontend membuang baris dengan `totalVervalAdaBaru === 0`.
 - Terverifikasi live 2026-10-18: 200, data per kecamatan untuk Kab. Tanah Laut.
+
+### 8.0 Koreksi & dimensi wilayah (terverifikasi live 2026-10-21)
+
+**Klaim lama "tanpa `periode` → 404" salah.** `getMonitoringKrs` tanpa `periode` membalas
+**200** dan mengembalikan penjumlahan semester 1 + 2:
+
+| Kecamatan | `periode=1` | `periode=2` | tanpa `periode` | cakupan tanpa `periode` |
+|---|---|---|---|---|
+| TAKISUNG | 209 | 166 | **375** | 200% |
+| JORONG | 124 | 111 | **235** | 190,91% |
+| PELAIHARI | 305 | 893 | **1.198** | 180% |
+
+`kelurahanVerval` juga dobel (Pelaihari 36 dari target 20). Jadi angka tanpa `periode`
+diam-diam berisi dua semester; bukan "semua data", dan bukan galat. Bundle `chunks/32.js`
+hanya menambahkan `periode` bila dropdown Semester terisi — jangan tiru, selalu kirim
+eksplisit.
+
+`periode` di luar 1/2: `0` dan `3` → 200 `{"data":[]}`; nilai non-angka → **400**.
+
+**Dimensi baris mengikuti wilayah terdalam:**
+
+| Parameter | Baris | `kategoriLaporan` |
+|---|---|---|
+| `idProvinsi=22` | 13 kabupaten (Kalsel) | `Provinsi` |
+| `+idKabupaten=322` | 11 kecamatan (Tanah Laut) | `Kabupaten` |
+| `+idKecamatan=5844` | 10 desa (Panyipatan) | `Kecamatan` ← label level yang diminta, bukan level baris |
+| `+idKelurahan=55409` | 1 baris (Batu Tungku) | `Kelurahan` |
+
+Artinya `kategoriLaporan` adalah **level kueri**, bukan level baris. Jangan pakai field itu
+untuk menebak granularitas; pakai keberadaan `idKecamatan`/`idKelurahan`.
+
+`tahun` benar-benar dihormati: 2025 TAKISUNG `totalVervalAdaBaru` = 2.121, 2026 = 166.
+Tahun 2023 membalas **5 baris** (hanya kecamatan yang punya data), bukan 11.
+
+**Tipe data:** semua angka dikirim sebagai **string berpemisah ribuan**
+(`"totalVervalAdaBaru": "1,198"`, `"pusSasaran": "4,741"`), kecuali
+`cakupanKelurahanVerval` (float). `Number("1,198")` = `NaN`; buang koma dulu.
+
+**Field lengkap per baris (34):** `kategoriLaporan`, `kode`, `namaDaerah`, `kelurahanAda`,
+`kelurahanTarget`, `kelurahanVerval`, `cakupanKelurahanVerval`, `pusSasaran`,
+`pusVervalAda`, `pusVervalBaru`, `pusVervalAdaBaru`, `pusHamilSasaran`,
+`pushamilVervalAda`, `pushamilVervalBaru`, `badutaSasaran`, `badutaVervalAda`,
+`badutaVervalBaru`, `balitaSasaran`, `balitaVervalAda`, `balitaVervalBaru`,
+`keluargaSasaranCatin`, `sasaranPrioritas`, `prioritasTerverval`, `adaBaruLainTerverval`,
+`totalSasaran`, `totalVervalAdaBaru`, `totalVervalAda`, `totalVervalBaru`, `total`,
+`pushamilVerval`, `badutaVerval`, `balitaVerval`, `totalRekap`, `persenTarget`.
 
 Kolom tabel (urutan tampilan):
 
@@ -507,24 +640,30 @@ pada objek baris.
 
 ### 8.1 Cetak Monitoring KRS
 
-Tombol **Cetak** memanggil dua laporan berbeda:
+Tombol **Cetak** memanggil dua laporan berbeda, **keduanya di gateway
+`report-siga-ocp`** — bukan `pk23-portal-gw` seperti yang sempat tercatat. Ditangkap dari
+jaringan saat tombol ditekan (Dialog "Cetak Formulir" → Rekap/Detail):
 
 ```
 # Detail (tombol "Detail")
-GET https://pk23-portal-gw.bkkbn.go.id/report/viewReport
-    ?filterPencarian={"tahun":"<YYYY>","provinsiId":"..","kabupatenId":"..",
-      "kecamatanId":"..","reportName":"MonitoringVerval|MonitoringVerval2024",
-      "reportType":"xlsx","periode":"<semester>","reportCategory":"Monitoring"}
+GET https://siga-api-gateway.bkkbn.go.id/report-siga-ocp/viewReport
+    ?filterPencarian={"tahun":"2026","provinsiId":"22","kabupatenId":"322",
+      ["kecamatanId":"…",]"reportName":"MonitoringVerval2024",
+      "reportType":"xlsx","periode":"2","reportCategory":"Monitoring"}
 
 # Rekap (tombol "Rekap")
-GET https://pk23-portal-gw.bkkbn.go.id/report/viewReport
-    ?filterPencarian={"tahun":"…","provinsiId":"…","kabupatenId":"…",
-      "kecamatanId":"…","kelurahanId":"…",
-      "reportName":"MonitoringPendataanVerval|MonitoringPendataanVerval2024",
-      "reportType":"xlsx","periode":"<semester>","reportCategory":"Monitoring"}
+GET https://siga-api-gateway.bkkbn.go.id/report-siga-ocp/viewReport
+    ?filterPencarian={"tahun":"2026","provinsiId":"22","kabupatenId":"322",
+      ["kecamatanId":"…",]["kelurahanId":"…",]"reportName":"MonitoringPendataanVerval2024",
+      "reportType":"xlsx","periode":"2","reportCategory":"Monitoring"}
 ```
 
-`reportName` memakai suffix `2024` bila tahun ≠ 2023. Wajib minimal `provinsiId`.
+`reportName` memakai sufiks `2024` untuk tahun ≠ 2023 (sesuai `chunks/32.js`); tanpa sufiks
+(`MonitoringVerval`) membalas **200 dengan body 0 byte** untuk tahun 2026. Wajib minimal
+`provinsiId`.
+
+Terverifikasi: level kabupaten `application/xlsx` 45.601 B (Detail) / 44.386 B (Rekap);
+level kecamatan 7.825 B; `reportType=pdf` → `application/pdf` 148.133 B.
 
 ---
 
@@ -677,14 +816,17 @@ GET https://siga-api-gateway.bkkbn.go.id/modul-stunting-sigabaru/siga/stunting/g
 2. `Content-Type` kadang `null` dan body kosong (0 byte) untuk kombinasi
    `reportName`/`reportCategory` yang tidak cocok. Itu "tidak ada laporan", bukan error.
 3. `reportType=xlsx` mengembalikan `application/xlsx` (~6 KB untuk tabel kosong).
-4. `periode` harus `YYYY-MM` dengan bulan 2 digit (`2026-10`, bukan `2026-1`).
+4. `periode` **diabaikan server** — jangan kirim `periode` sama sekali. Laporan bulanan
+   memakai `tahun` + `bulan` (int `1`–`12`); kumulatif memakai `bulan` atau
+   `bulanAwal`/`bulanAkhir` (lihat §5.3).
 5. `reportName` YAN KB bulanan berubah jadi `Tabel1Kab` bila kabupaten dipilih —
    `Tabel1` + kabupaten menghasilkan halaman kosong.
 6. KRS `reportCategory` bergantung tahun (`STUNTING2022…STUNTING2025`), sedangkan
    `Tabel1/2/6` memakai `Verval-Tabulasi` (2023) atau `Verval-Tabulasi2024`.
 7. Verval KRS: path `modul-stunting-sigabaru` hanya untuk tahun 2023; selain itu
    pakai `modul-stunting-<service>` dari resolver provinsi.
-8. `getMonitoringKrs` tanpa `periode` → 404 walau `tahun` ada.
+8. `getMonitoringKrs` **tanpa** `periode` → 200, tetapi angkanya penjumlahan dua
+   semester (cakupan bisa 200%). Selalu kirim `periode=1|2`; lihat §8.0.
 9. Link daftar laporan adalah `<a href="#/...">` dengan handler React; klik programatik
    lewat DOM lebih andal daripada klik koordinat.
 10. Login memanggil `auth/signin?` (dengan tanda tanya) — tetap bekerja.
@@ -896,9 +1038,12 @@ Belum / perlu verifikasi tambahan:
   agregat yang terverifikasi
 - ⬜ `getVervalWilayah`, `getDetailVervalKrs`, `getNextKki` — path sudah ada di bundle,
   belum diuji dengan parameter lengkap
-- ⬜ Parameter `periode` pada `getMonitoringKrs` untuk tahun < 2024
+- ✅ Parameter `periode` pada `getMonitoringKrs` untuk tahun < 2024 — tahun 2023 +
+  `periode=2` membalas 5 baris (hanya kecamatan berisi data), tahun 2025 terisi (§8.0)
 - ⬜ Struktur `data_kunjungan[]` pada CATIN (nested, belum dipetakan)
 - ⬜ `#/tabulasi` (REKAPITULASI) — route ada, endpoint belum ditelusuri
+- ✅ Dimensi desa per kecamatan: `kecamatanId` mengubah baris jadi desa; `kelurahanId`
+  diabaikan DALLAP/YAN KB/ELSIMIL (§5.3.1)
 
 ---
 

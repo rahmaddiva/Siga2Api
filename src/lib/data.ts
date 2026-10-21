@@ -1,3 +1,6 @@
+/** `cumulative` = kumulatif; butuh rentang bulan (atau satu bulan untuk Catin). */
+export type PeriodType = 'annual' | 'monthly' | 'cumulative'
+
 export type PeriodEntry = {
   key: string
   label: string
@@ -16,7 +19,7 @@ export type ReportEntry = {
   reportName: string
   reportCategory: string
   description: string
-  periodType: 'annual' | 'monthly'
+  periodType: PeriodType
   periods: PeriodEntry[]
   rowCount: number
   colCount: number
@@ -41,8 +44,17 @@ export type ReportData = {
   period: string | null
   wilayah: Record<string, string>
   columns: string[]
+  /** Hierarki header asli (induk -> anak), sejajar dengan `columns`. */
+  columnGroups?: string[][]
+  colNumbers?: string[] | null
   rows: string[][]
   empty: boolean
+  /**
+   * "no-data"      = server menjawab "HASIL PENCARIAN DATA TIDAK DITEMUKAN"
+   * "empty-table"  = halaman terparse tapi tanpa baris data
+   * "fetch-error"  = pengambilan gagal saat snapshot dibuat
+   */
+  emptyReason?: 'no-data' | 'empty-table' | 'fetch-error' | null
   error?: string | null
   module: string
   moduleLabel: string
@@ -50,7 +62,7 @@ export type ReportData = {
   reportName: string
   reportCategory: string
   description: string
-  periodType: 'annual' | 'monthly'
+  periodType: PeriodType
   periodKey: string
   periodLabel: string
   fetchedAt: string

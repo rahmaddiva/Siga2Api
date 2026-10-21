@@ -262,14 +262,16 @@ def parse_report(html: str) -> dict:
     if not grid or width == 0:
         return {"title": None, "subtitle": None, "period": None,
                 "printedPeriod": None, "wilayah": {}, "columns": [], "rows": [],
-                "empty": True}
+                "empty": True, "emptyReason": "empty-table"}
 
     # JasperReports menandai hasil kosong dengan teks khusus, bukan tabel kosong.
+    # `emptyReason` membedakan "server bilang tidak ada data" dari "tabel kosong"
+    # supaya UI tidak menyuruh pengguna memanen ulang tanpa alasan.
     flat_upper = " ".join(v for row in grid for v in row).upper()
     if "DATA TIDAK DITEMUKAN" in flat_upper:
         return {"title": None, "subtitle": None, "period": None,
                 "printedPeriod": None, "wilayah": {}, "columns": [], "rows": [],
-                "empty": True}
+                "empty": True, "emptyReason": "no-data"}
 
     def is_table_header_row(row: list[str]) -> bool:
         """Baris judul kolom tabel (bukan metadata), mis. NO/KODE/KECAMATAN."""
@@ -323,12 +325,15 @@ def parse_report(html: str) -> dict:
             if re.fullmatch(r"[\d/\-.\s]+", joined):
                 joined = f"{pending_label} {joined}"
             pending_label = None
-        if re.match(r"(?i)^(TAHUN|PERIODE)\b", joined):
+        # "BULAN" ikut dikenali: laporan bulanan DALLAP/YAN KB mencetak
+        # "BULAN : OKT - 2026" (bukan "TAHUN"/"PERIODE"), dan tanpa ini
+        # printedPeriod tetap None sehingga periodStatus selalu "unknown".
+        if re.match(r"(?i)^(TAHUN|PERIODE|BULAN)\b", joined):
             val = usable_period(joined)
             if val:
                 period = period or val
                 printed_period = printed_period or joined
-            elif re.fullmatch(r"(?i)(TAHUN|PERIODE)\s*:?", joined):
+            elif re.fullmatch(r"(?i)(TAHUN|PERIODE|BULAN)\s*:?", joined):
                 # Placeholder tanpa nilai ("TAHUN :") -> tunggu baris berikut.
                 pending_label = joined
             else:
@@ -400,11 +405,23 @@ def parse_report(html: str) -> dict:
             break
 
     # --- 4. nama kolom: gabung path header, pakai daun; beri prefiks bila duplikat
+    # `paths` menyimpan hierarki header apa adanya (induk -> anak), sehingga
+    # UI bisa merender header bertingkat seperti dokumen aslinya. Nilai ini
+    # diekspor sebagai `columnGroups`; `columns` tetap rata untuk kompatibilitas.
+    # Path dibangun dari RENTANG SEL ASLI (start, colspan, teks), bukan dari grid
+    # hasil ekspansi. Grid hanya menaruh teks di kolom pertama sel ber-colspan,
+    # sehingga anak-anak kolom kedua dan seterusnya kehilangan nama induknya
+    # (mis. "VIRTUAL" kehilangan induk "CARA PENYULUHAN"). Data rows tetap
+    # memakai grid apa adanya supaya nilai tidak terduplikasi.
     paths: list[list[str]] = [[] for _ in range(width)]
-    for row in header_rows:
-        for c, v in enumerate(row):
-            if v and v not in paths[c]:
-                paths[c].append(v)
+    for ri in header_row_idx:
+        for start, cs, txt in spans[ri]:
+            if not txt:
+                continue
+            for c in range(start, min(start + cs, width)):
+                if txt not in paths[c]:
+                    paths[c].append(txt)
+
 
     leaves = [(p[-1] if p else "") for p in paths]
     counts: dict[str, int] = {}
@@ -421,6 +438,8 @@ def parse_report(html: str) -> dict:
             columns.append(f"{p[-2]} / {lf}")
         else:
             columns.append(lf)
+
+    column_groups = [list(p) for p in paths]
 
     # nomor kolom dari baris indeks (kalau ada), untuk referensi
     col_numbers = None
@@ -455,6 +474,8 @@ def parse_report(html: str) -> dict:
             rows = [(r[lo:hi + 1] if len(r) >= hi + 1 else r[lo:] + [""] * (hi + 1 - len(r))) for r in rows]
             if col_numbers:
                 col_numbers = col_numbers[lo:hi + 1]
+            if column_groups:
+                column_groups = column_groups[lo:hi + 1]
             # Rentang sel ikut digeser agar indeksnya tetap sejajar `columns`.
             spans = [[(start - lo, cs, txt) for start, cs, txt in row]
                      for row in spans]
@@ -504,7 +525,8 @@ def parse_report(html: str) -> dict:
         "title": title, "subtitle": subtitle, "period": period,
         "printedPeriod": printed_period,
         "wilayah": wilayah, "columns": columns, "colNumbers": col_numbers,
-        "rows": rows, "empty": not rows,
+        "columnGroups": column_groups, "rows": rows, "empty": not rows,
+        "emptyReason": None if rows else "empty-table",
     }
 
 
@@ -519,9 +541,22 @@ MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
               "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
 
 
+# Kategori kumulatif butuh rentang bulan, bukan satu bulan. Diverifikasi live
+# 2026-10 dengan sel non-nol Tabel1:
+#   Catin-Komulatif      tahun=24, tahun+bulan=141, awal+akhir=24  -> pakai `bulan`
+#   Bumil-Komulatif      tahun=26, tahun+bulan=26,  awal+akhir=168 -> pakai rentang
+#   Pascasalin-Komulatif tahun=47, tahun+bulan=47,  awal+akhir=253 -> pakai rentang
+#   Baduta-Kumulatif     tahun=29, tahun+bulan=29,  awal+akhir=220 -> pakai rentang
+# Tanpa filter yang benar, laporan "berisi" tapi angkanya cuma potongan tahun.
+RANGE_CUMULATIVE = {"bumil", "pascasalin", "baduta", "elsimilbaduta"}
+
+
 def period_type_of(category: str) -> str:
-    """Laporan 'Bulanan' memakai `periode`; sisanya memakai `tahun`."""
-    return "monthly" if "bulanan" in category.lower() else "annual"
+    """`bulanan` | `cumulative` | `annual`."""
+    c = category.lower()
+    if "komulatif" in c or "kumulatif" in c:
+        return "cumulative"
+    return "monthly" if "bulanan" in c else "annual"
 
 
 def period_label(key: str) -> str:
@@ -536,6 +571,7 @@ def enumerate_periods(args) -> tuple[list[str], list[str]]:
     annual = [] if args.skip_annual else [str(y) for y in args.years]
     monthly = [] if args.skip_monthly else [
         f"{y}-{m:02d}" for y in args.years for m in args.months]
+    # Laporan kumulatif dipanen per bulan juga (satu file per bulan akhir).
     return annual, monthly
 
 
@@ -547,8 +583,27 @@ def report_url(module, report, args, group, period_type, period_key):
     category = ov.get("category", report["reportCategory"])
     filt = {"reportName": report["reportName"], "reportType": "html",
             "reportCategory": category}
-    if period_type == "monthly":
-        filt["periode"] = period_key
+    # Laporan bulanan: kirim "tahun" + "bulan" (int) untuk SEMUA kategori
+    # monthly — jangan menyalin bundle aplikasi. Bundle `_re/js/chunks/11.js`
+    # hanya menambahkan "bulan" bila `"Dallap-Bulanan" === catTable`, tetapi
+    # uji live membuktikan `Dallap-RekapBulanan` juga menghormati "bulan".
+    # Diverifikasi live (2026-10, kab 322):
+    #   kategori              | periode saja | tahun saja | tahun+bulan
+    #   YanKB-Bulanan-Kec     |   11 td      |   365 td   |   365 td (isi beda/bln)
+    #   Dallap-Bulanan        |   11 td      |   272 td   |   272 td (isi beda/bln)
+    #   Dallap-RekapBulanan   |    0 td      |     9 td   |   242 td (isi beda/bln)
+    # Kesimpulan: "periode" selalu salah (diabaikan server); "bulan" wajib agar
+    # angkanya benar-benar per bulan.
+    if period_type in ("monthly", "cumulative"):
+        year, month = period_key.split("-")
+        filt["tahun"] = year
+        cat_l = category.lower()
+        if period_type == "cumulative" and any(k in cat_l for k in RANGE_CUMULATIVE):
+            # Kumulatif (kecuali Catin) memakai rentang bulan, bukan satu bulan.
+            filt["bulanAwal"] = 1
+            filt["bulanAkhir"] = int(month)
+        else:
+            filt["bulan"] = int(month)
     else:
         filt["tahun"] = period_key
     filt["provinsiId"] = str(args.prov)
@@ -585,9 +640,15 @@ def main():
     args.years = [int(y) for y in str(args.years).split(",") if y.strip()]
     args.months = _parse_months(args.months)
 
+    # Token OPSIONAL. Endpoint laporan SIGA saat ini tidak menegakkan
+    # autentikasi (lihat reverse-engineering.md §13.1), jadi panen bisa jalan
+    # tanpa kredensial — itu yang membuat cron bulanan tidak perlu menyimpan
+    # secret. Kalau TOKEN diisi, header Authorization tetap dikirim; pakai itu
+    # begitu pemilik sistem menegakkan verifikasi JWT.
     token = os.environ.get("TOKEN")
     if not token and not args.index_only:
-        sys.exit("Set TOKEN=<jwt> lebih dulu.")
+        print("  INFO tanpa TOKEN — memakai endpoint apa adanya (tanpa Authorization)",
+              file=sys.stderr)
 
     if args.index_only:
         mods = [args.only] if args.only else list(MODULES)
@@ -612,7 +673,7 @@ def main():
                     print(f"  SKIP PII {mod}/{cat}", file=sys.stderr)
                     continue
                 ptype = period_type_of(cat)
-                keys = monthly_keys if ptype == "monthly" else annual_keys
+                keys = annual_keys if ptype == "annual" else monthly_keys
                 for key in keys:
                     jobs.append((mod, cfg, group, rep, ptype, key))
 
@@ -624,14 +685,29 @@ def main():
         cat = rep["reportCategory"]
         fname = f"{cat}__{rep['reportName']}__{key}".replace("/", "_")
         path = os.path.join(args.out, mod, fname + ".json")
+        url, filt = report_url(mod, rep, args, group, ptype, key)
+
+        # Cache hanya dipakai bila isinya masih SAH. File lama bisa basi karena:
+        #   - panen sebelumnya error (jaringan/server) -> wajib dicoba lagi;
+        #   - dibuat dengan bentuk filter lama (`periode`), yang diabaikan server
+        #     sehingga isinya kosong walau sebenarnya ada data.
+        # Tanpa pemeriksaan ini, `--force` harus dipakai untuk SEMUA file setiap
+        # kali panen parsial, dan itu berjam-jam untuk 1570 periode.
         if os.path.exists(path) and not args.force:
             try:
                 with open(path, encoding="utf-8") as f:
-                    return ("cache", job, json.load(f), fname)
+                    cached = json.load(f)
+                stale = (
+                    bool(cached.get("error"))
+                    or cached.get("filter") != filt
+                    # Skema baru: file lama belum punya hierarki header.
+                    or "columnGroups" not in cached
+                )
+                if not stale:
+                    return ("cache", job, cached, fname)
             except Exception:  # noqa: BLE001
                 pass
 
-        url, filt = report_url(mod, rep, args, group, ptype, key)
         base_meta = {
             "module": mod, "moduleLabel": cfg["label"], "group": group,
             "reportName": rep["reportName"], "reportCategory": filt["reportCategory"],
@@ -648,7 +724,8 @@ def main():
                     "period": None, "printedPeriod": None, "printedYear": None,
                     "periodStatus": "unknown",
                     "wilayah": {}, "columns": [], "rows": [],
-                    "empty": True, "error": f"{type(e).__name__}: {e}"[:200],
+                    "empty": True, "emptyReason": "fetch-error",
+                    "error": f"{type(e).__name__}: {e}"[:200],
                     **base_meta}
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(stub, f, ensure_ascii=False, separators=(",", ":"))
@@ -726,10 +803,18 @@ def collect_local(args) -> list[dict]:
         for fn in sorted(os.listdir(d)):
             if not fn.endswith(".json"):
                 continue
-            with open(os.path.join(d, fn), encoding="utf-8") as f:
-                parsed = json.load(f)
-            ptype = parsed.get("periodType") or period_type_of(
-                parsed.get("reportCategory", ""))
+            # File bisa setengah tertulis bila panen terbunuh saat json.dump
+            # (tidak atomik). Lewati, jangan gagalkan seluruh penyusunan index.
+            try:
+                with open(os.path.join(d, fn), encoding="utf-8") as f:
+                    parsed = json.load(f)
+            except (OSError, ValueError) as e:  # noqa: BLE001
+                print(f"  SKIP rusak {mod}/{fn}: {type(e).__name__}", file=sys.stderr)
+                continue
+            # Kategori adalah sumber kebenaran, bukan `periodType` tersimpan:
+            # file lama memuat "annual" untuk laporan yang sekarang tergolong
+            # kumulatif, sehingga satu laporan muncul dua kali di index.
+            ptype = period_type_of(parsed.get("reportCategory", ""))
             ident = (mod, parsed.get("group", ""), parsed.get("reportName", ""),
                      parsed.get("reportCategory", ""), ptype)
             slot = by_id.setdefault(ident, {
@@ -772,20 +857,54 @@ def merge_index(args, index: list[dict], mods: list[str]) -> list[dict]:
               f"memakai hasil panen saja", file=sys.stderr)
         return index
 
-    # Entri segar selalu menang. Entri modul lain dipertahankan apa adanya;
-    # saat --max membatasi job, laporan modul ini yang tidak ikut dipanen
-    # juga dipertahankan agar tidak hilang.
-    fresh = {(r["module"], r["group"], r["reportName"], r["reportCategory"])
-             for r in index}
-    drop_mods = set() if args.max else set(mods)
-    kept = [r for r in old_reports
-            if (r.get("module"), r.get("group"), r.get("reportName"),
-                r.get("reportCategory")) not in fresh
-            and r.get("module") not in drop_mods]
-    if kept:
-        print(f"  merge index: {len(kept)} laporan lama dipertahankan",
+    # Merge PER-PERIODE, bukan per-laporan. Panen parsial (`--months 10`,
+    # `--skip-annual`, `--max`) hanya menyegarkan sebagian periode; periode lain
+    # dari laporan yang sama harus tetap ada di index. Bug lama membuang laporan
+    # utuh sehingga 1848 periode menyusut jadi 1425.
+    #
+    # Kunci identitas = (module, group, reportName, reportCategory); kunci
+    # periode = `file`, yang sekaligus mendedup identitas kembar (mis.
+    # `krs/STUNTING__Tabel4__2026.json` tercatat "STUNTING" di index lama dan
+    # "STUNTING2025" di index baru karena `groupOverrides` menimpa kategori).
+    fresh_ids = {(r["module"], r["group"], r["reportName"], r["reportCategory"])
+                 for r in index}
+    fresh_files = {p["file"] for r in index for p in r.get("periods", [])}
+    by_ident = {(r["module"], r["group"], r["reportName"], r["reportCategory"]): r
+                for r in index}
+
+    added = 0
+    dropped = 0
+    for old_rep in old_reports:
+        ident = (old_rep.get("module"), old_rep.get("group"),
+                 old_rep.get("reportName"), old_rep.get("reportCategory"))
+        kept_periods = []
+        for p in old_rep.get("periods", []):
+            if p.get("file") in fresh_files:
+                continue
+            # Berkas bisa sudah dihapus/diganti (mis. laporan kumulatif tahunan
+            # lama digantikan satu berkas per bulan akhir). Mempertahankan
+            # entri seperti itu membuat index menunjuk berkas yang tidak ada,
+            # dan UI gagal memuatnya (404).
+            if not os.path.exists(os.path.join(args.out, p.get("file", ""))):
+                dropped += 1
+                continue
+            kept_periods.append(p)
+        if not kept_periods:
+            continue
+        if ident in fresh_ids:
+            by_ident[ident]["periods"].extend(kept_periods)
+        else:
+            old_rep["periods"] = kept_periods
+            index.append(old_rep)
+            by_ident[ident] = old_rep
+        added += len(kept_periods)
+
+    if dropped:
+        print(f"  merge index: {dropped} periode lama dibuang (berkasnya tidak ada)",
               file=sys.stderr)
-    return index + kept
+    if added:
+        print(f"  merge index: {added} periode lama dipertahankan", file=sys.stderr)
+    return index
 
 
 def write_index(args, index):

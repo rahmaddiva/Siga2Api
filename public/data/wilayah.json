@@ -1,0 +1,760 @@
+{
+ "source": "location-service/siga/location (getListKecamatanByIdKabupaten + getListKelurahanByIdKecamatan)",
+ "fetchedAt": "2026-10-21",
+ "provinsiId": 22,
+ "kabupatenId": 322,
+ "kecamatan": [
+  {
+   "id": 6157,
+   "nama": "TAKISUNG",
+   "kode": "01",
+   "desa": [
+    {
+     "id": 55467,
+     "nama": "BANUA LAWAS",
+     "kode": "2001"
+    },
+    {
+     "id": 55466,
+     "nama": "TABANIO",
+     "kode": "2002"
+    },
+    {
+     "id": 55465,
+     "nama": "KUALA TAMBANGAN",
+     "kode": "2003"
+    },
+    {
+     "id": 55464,
+     "nama": "TAKISUNG",
+     "kode": "2004"
+    },
+    {
+     "id": 55463,
+     "nama": "GUNUNG MAKMUR",
+     "kode": "2005"
+    },
+    {
+     "id": 55462,
+     "nama": "BANUA TENGAH",
+     "kode": "2006"
+    },
+    {
+     "id": 55461,
+     "nama": "RANGGANG",
+     "kode": "2007"
+    },
+    {
+     "id": 55460,
+     "nama": "PAGATAN BESAR",
+     "kode": "2008"
+    },
+    {
+     "id": 55459,
+     "nama": "BATILAI",
+     "kode": "2009"
+    },
+    {
+     "id": 55458,
+     "nama": "RANGGANG DALAM",
+     "kode": "2010"
+    },
+    {
+     "id": 55457,
+     "nama": "TELAGA LANGSAT",
+     "kode": "2011"
+    },
+    {
+     "id": 55456,
+     "nama": "SUMBER MAKMUR",
+     "kode": "2012"
+    }
+   ]
+  },
+  {
+   "id": 5721,
+   "nama": "JORONG",
+   "kode": "02",
+   "desa": [
+    {
+     "id": 55455,
+     "nama": "SABUHUR",
+     "kode": "2001"
+    },
+    {
+     "id": 55454,
+     "nama": "JORONG",
+     "kode": "2002"
+    },
+    {
+     "id": 54675,
+     "nama": "ASAM-ASAM",
+     "kode": "2003"
+    },
+    {
+     "id": 55453,
+     "nama": "BATALANG",
+     "kode": "2004"
+    },
+    {
+     "id": 55452,
+     "nama": "SWARANGAN",
+     "kode": "2005"
+    },
+    {
+     "id": 55451,
+     "nama": "MUARA ASAM-ASAM",
+     "kode": "2006"
+    },
+    {
+     "id": 54674,
+     "nama": "ALUR",
+     "kode": "2007"
+    },
+    {
+     "id": 55450,
+     "nama": "ASRI MULYA",
+     "kode": "2008"
+    },
+    {
+     "id": 55449,
+     "nama": "KARANG REJO",
+     "kode": "2009"
+    },
+    {
+     "id": 55448,
+     "nama": "ASAM JAYA",
+     "kode": "2010"
+    },
+    {
+     "id": 75831,
+     "nama": "SIMPANG EMPAT SUNGAI BARU",
+     "kode": "2011"
+    }
+   ]
+  },
+  {
+   "id": 5847,
+   "nama": "PELAIHARI",
+   "kode": "03",
+   "desa": [
+    {
+     "id": 54673,
+     "nama": "SARANG HALANG",
+     "kode": "1001"
+    },
+    {
+     "id": 55447,
+     "nama": "KARANG TARUNA",
+     "kode": "1002"
+    },
+    {
+     "id": 55446,
+     "nama": "PELAIHARI",
+     "kode": "1003"
+    },
+    {
+     "id": 55445,
+     "nama": "ANGSAU",
+     "kode": "1004"
+    },
+    {
+     "id": 55444,
+     "nama": "PABAHANAN",
+     "kode": "1005"
+    },
+    {
+     "id": 54672,
+     "nama": "BUMI JAYA",
+     "kode": "2006"
+    },
+    {
+     "id": 55443,
+     "nama": "SUNGAI RIAM",
+     "kode": "2008"
+    },
+    {
+     "id": 55442,
+     "nama": "TAMPANG",
+     "kode": "2009"
+    },
+    {
+     "id": 55441,
+     "nama": "TELAGA",
+     "kode": "2010"
+    },
+    {
+     "id": 54671,
+     "nama": "PANJARATAN",
+     "kode": "2011"
+    },
+    {
+     "id": 55440,
+     "nama": "ATU-ATU",
+     "kode": "2012"
+    },
+    {
+     "id": 55439,
+     "nama": "PANGGUNG",
+     "kode": "2015"
+    },
+    {
+     "id": 55438,
+     "nama": "TUNGKARAN",
+     "kode": "2016"
+    },
+    {
+     "id": 55437,
+     "nama": "UJUNG BATU",
+     "kode": "2017"
+    },
+    {
+     "id": 55436,
+     "nama": "PANGGUNG BARU",
+     "kode": "2020"
+    },
+    {
+     "id": 54670,
+     "nama": "AMBUNGAN",
+     "kode": "2024"
+    },
+    {
+     "id": 55435,
+     "nama": "GUNTUNG BESAR",
+     "kode": "2025"
+    },
+    {
+     "id": 55434,
+     "nama": "KAMPUNG BARU",
+     "kode": "2026"
+    },
+    {
+     "id": 55433,
+     "nama": "SUMBER MULIA",
+     "kode": "2027"
+    },
+    {
+     "id": 74270,
+     "nama": "PEMUDA",
+     "kode": "2029"
+    }
+   ]
+  },
+  {
+   "id": 5846,
+   "nama": "KURAU",
+   "kode": "04",
+   "desa": [
+    {
+     "id": 55432,
+     "nama": "SUNGAI BAKAU",
+     "kode": "2001"
+    },
+    {
+     "id": 55431,
+     "nama": "MALUKA BAULIN",
+     "kode": "2002"
+    },
+    {
+     "id": 55430,
+     "nama": "BAWAH LAYUNG",
+     "kode": "2003"
+    },
+    {
+     "id": 55429,
+     "nama": "TAMBAK SARINAH",
+     "kode": "2004"
+    },
+    {
+     "id": 55428,
+     "nama": "KALI BESAR",
+     "kode": "2005"
+    },
+    {
+     "id": 55427,
+     "nama": "HANDIL NEGARA",
+     "kode": "2006"
+    },
+    {
+     "id": 55426,
+     "nama": "PADANG LUAS",
+     "kode": "2007"
+    },
+    {
+     "id": 55425,
+     "nama": "KURAU",
+     "kode": "2008"
+    },
+    {
+     "id": 55424,
+     "nama": "TAMBAK KARYA",
+     "kode": "2017"
+    },
+    {
+     "id": 55423,
+     "nama": "RADEN",
+     "kode": "2018"
+    },
+    {
+     "id": 55422,
+     "nama": "SARIKANDI",
+     "kode": "2019"
+    }
+   ]
+  },
+  {
+   "id": 5845,
+   "nama": "BATI BATI",
+   "kode": "05",
+   "desa": [
+    {
+     "id": 55421,
+     "nama": "BENUA RAYA",
+     "kode": "2001"
+    },
+    {
+     "id": 55420,
+     "nama": "BATI-BATI",
+     "kode": "2002"
+    },
+    {
+     "id": 55419,
+     "nama": "UJUNG",
+     "kode": "2003"
+    },
+    {
+     "id": 54669,
+     "nama": "LIANG ANGGANG",
+     "kode": "2004"
+    },
+    {
+     "id": 55418,
+     "nama": "BENTOK KAMPUNG",
+     "kode": "2005"
+    },
+    {
+     "id": 55417,
+     "nama": "BENTOK DARAT",
+     "kode": "2006"
+    },
+    {
+     "id": 55416,
+     "nama": "BANYU IRANG",
+     "kode": "2007"
+    },
+    {
+     "id": 54668,
+     "nama": "NUSA INDAH",
+     "kode": "2008"
+    },
+    {
+     "id": 55415,
+     "nama": "PANDAHAN",
+     "kode": "2009"
+    },
+    {
+     "id": 55414,
+     "nama": "PADANG",
+     "kode": "2010"
+    },
+    {
+     "id": 55413,
+     "nama": "UJUNG BARU",
+     "kode": "2011"
+    },
+    {
+     "id": 55412,
+     "nama": "SAMBANGAN",
+     "kode": "2012"
+    },
+    {
+     "id": 55411,
+     "nama": "KAIT-KAIT",
+     "kode": "2013"
+    },
+    {
+     "id": 55410,
+     "nama": "KAIT-KAIT BARU",
+     "kode": "2014"
+    }
+   ]
+  },
+  {
+   "id": 5844,
+   "nama": "PANYIPATAN",
+   "kode": "06",
+   "desa": [
+    {
+     "id": 55409,
+     "nama": "BATU TUNGKU",
+     "kode": "2001"
+    },
+    {
+     "id": 55408,
+     "nama": "PANYIPATAN",
+     "kode": "2002"
+    },
+    {
+     "id": 55407,
+     "nama": "KANDANGAN BARU",
+     "kode": "2003"
+    },
+    {
+     "id": 54667,
+     "nama": "KANDANGAN LAMA",
+     "kode": "2004"
+    },
+    {
+     "id": 55406,
+     "nama": "BATAKAN",
+     "kode": "2005"
+    },
+    {
+     "id": 55405,
+     "nama": "KURINGKIT",
+     "kode": "2006"
+    },
+    {
+     "id": 55404,
+     "nama": "TANJUNG DEWA",
+     "kode": "2007"
+    },
+    {
+     "id": 55403,
+     "nama": "SUKA RAMAH",
+     "kode": "2008"
+    },
+    {
+     "id": 55402,
+     "nama": "BATU MULYA",
+     "kode": "2009"
+    },
+    {
+     "id": 55401,
+     "nama": "BUMI ASIH",
+     "kode": "2010"
+    }
+   ]
+  },
+  {
+   "id": 5720,
+   "nama": "KINTAP",
+   "kode": "07",
+   "desa": [
+    {
+     "id": 55400,
+     "nama": "PANDAN SARI",
+     "kode": "2001"
+    },
+    {
+     "id": 55399,
+     "nama": "KINTAP",
+     "kode": "2002"
+    },
+    {
+     "id": 55398,
+     "nama": "KINTAPURA",
+     "kode": "2003"
+    },
+    {
+     "id": 55397,
+     "nama": "SUNGAI CUKA",
+     "kode": "2004"
+    },
+    {
+     "id": 55396,
+     "nama": "RIAM ADUNGAN",
+     "kode": "2005"
+    },
+    {
+     "id": 55395,
+     "nama": "MUARA KINTAP",
+     "kode": "2006"
+    },
+    {
+     "id": 55394,
+     "nama": "SALAMAN",
+     "kode": "2007"
+    },
+    {
+     "id": 55393,
+     "nama": "KINTAP KECIL",
+     "kode": "2008"
+    },
+    {
+     "id": 55392,
+     "nama": "PASIR PUTIH",
+     "kode": "2009"
+    },
+    {
+     "id": 55391,
+     "nama": "SUMBER JAYA",
+     "kode": "2010"
+    },
+    {
+     "id": 55390,
+     "nama": "BUKIT MULIA",
+     "kode": "2011"
+    },
+    {
+     "id": 55389,
+     "nama": "KEBUN RAYA",
+     "kode": "2012"
+    },
+    {
+     "id": 54666,
+     "nama": "MEKAR RAYA",
+     "kode": "2013"
+    },
+    {
+     "id": 55388,
+     "nama": "SEBAMBAN BARU",
+     "kode": "2014"
+    }
+   ]
+  },
+  {
+   "id": 5712,
+   "nama": "TAMBANG ULANG",
+   "kode": "08",
+   "desa": [
+    {
+     "id": 55387,
+     "nama": "TAMBANG ULANG",
+     "kode": "2001"
+    },
+    {
+     "id": 55386,
+     "nama": "SUNGAI PINANG",
+     "kode": "2002"
+    },
+    {
+     "id": 55385,
+     "nama": "MARTADAH",
+     "kode": "2003"
+    },
+    {
+     "id": 55384,
+     "nama": "SUNGAI JELAI",
+     "kode": "2004"
+    },
+    {
+     "id": 55383,
+     "nama": "BINGKULU",
+     "kode": "2005"
+    },
+    {
+     "id": 55382,
+     "nama": "GUNUNG RAJA",
+     "kode": "2006"
+    },
+    {
+     "id": 55381,
+     "nama": "PULAU SARI",
+     "kode": "2007"
+    },
+    {
+     "id": 55380,
+     "nama": "KAYU ABANG",
+     "kode": "2008"
+    },
+    {
+     "id": 55379,
+     "nama": "MARTADAH BARU",
+     "kode": "2009"
+    }
+   ]
+  },
+  {
+   "id": 5843,
+   "nama": "BATU AMPAR",
+   "kode": "09",
+   "desa": [
+    {
+     "id": 55378,
+     "nama": "BATU AMPAR",
+     "kode": "2001"
+    },
+    {
+     "id": 55377,
+     "nama": "GUNUNG MAS",
+     "kode": "2002"
+    },
+    {
+     "id": 55376,
+     "nama": "TAJAU MULYA",
+     "kode": "2003"
+    },
+    {
+     "id": 55375,
+     "nama": "JILATAN",
+     "kode": "2004"
+    },
+    {
+     "id": 55367,
+     "nama": "DURIAN BUNGKUK",
+     "kode": "2005"
+    },
+    {
+     "id": 55373,
+     "nama": "AMBAWANG",
+     "kode": "2006"
+    },
+    {
+     "id": 55372,
+     "nama": "DAMIT",
+     "kode": "2007"
+    },
+    {
+     "id": 55371,
+     "nama": "GUNUNG MELATI",
+     "kode": "2008"
+    },
+    {
+     "id": 55370,
+     "nama": "BLURU",
+     "kode": "2009"
+    },
+    {
+     "id": 55369,
+     "nama": "PANTAI LINUH",
+     "kode": "2010"
+    },
+    {
+     "id": 55374,
+     "nama": "DAMIT HULU",
+     "kode": "2011"
+    },
+    {
+     "id": 55368,
+     "nama": "JILATAN ALUR",
+     "kode": "2012"
+    },
+    {
+     "id": 55366,
+     "nama": "DAMAR LIMA",
+     "kode": "2013"
+    },
+    {
+     "id": 55365,
+     "nama": "TAJAU PECAH",
+     "kode": "2014"
+    }
+   ]
+  },
+  {
+   "id": 6625,
+   "nama": "BAJUIN",
+   "kode": "10",
+   "desa": [
+    {
+     "id": 73790,
+     "nama": "BAJUIN",
+     "kode": "2001"
+    },
+    {
+     "id": 73791,
+     "nama": "SUNGAI BAKAR",
+     "kode": "2002"
+    },
+    {
+     "id": 73789,
+     "nama": "KETAPANG",
+     "kode": "2003"
+    },
+    {
+     "id": 73785,
+     "nama": "TIRTA JAYA",
+     "kode": "2004"
+    },
+    {
+     "id": 73786,
+     "nama": "GALAM",
+     "kode": "2005"
+    },
+    {
+     "id": 73787,
+     "nama": "PEMALONGAN",
+     "kode": "2006"
+    },
+    {
+     "id": 73788,
+     "nama": "KUNYIT",
+     "kode": "2007"
+    },
+    {
+     "id": 73792,
+     "nama": "TEBING SIRING",
+     "kode": "2008"
+    },
+    {
+     "id": 73793,
+     "nama": "TANJUNG",
+     "kode": "2009"
+    }
+   ]
+  },
+  {
+   "id": 6624,
+   "nama": "BUMI MAKMUR",
+   "kode": "11",
+   "desa": [
+    {
+     "id": 73775,
+     "nama": "HANDIL BABIRIK",
+     "kode": "2001"
+    },
+    {
+     "id": 73779,
+     "nama": "KURAU UTARA",
+     "kode": "2002"
+    },
+    {
+     "id": 73782,
+     "nama": "BUMI HARAPAN",
+     "kode": "2003"
+    },
+    {
+     "id": 73780,
+     "nama": "SUNGAI RASAU",
+     "kode": "2004"
+    },
+    {
+     "id": 73781,
+     "nama": "PANTAI HARAPAN",
+     "kode": "2005"
+    },
+    {
+     "id": 73773,
+     "nama": "HANDIL SURUK",
+     "kode": "2006"
+    },
+    {
+     "id": 73774,
+     "nama": "HANDIL GAYAM",
+     "kode": "2007"
+    },
+    {
+     "id": 73783,
+     "nama": "HANDIL BIRAYANG ATAS",
+     "kode": "2008"
+    },
+    {
+     "id": 73784,
+     "nama": "HANDIL BIRAYANG BAWAH",
+     "kode": "2009"
+    },
+    {
+     "id": 73778,
+     "nama": "HANDIL MALUKA",
+     "kode": "2010"
+    },
+    {
+     "id": 73776,
+     "nama": "HANDIL LABUAN AMAS",
+     "kode": "2011"
+    }
+   ]
+  }
+ ]
+}
