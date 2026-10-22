@@ -175,7 +175,7 @@ export function DataTable({ data }: { data: ReportData }) {
   if (data.empty) {
     return (
       <div className="flex flex-col items-center rounded-lg border border-dashed border-input bg-card px-6 py-14 text-center">
-        <Inbox className="mb-3 size-9 text-slate-300" aria-hidden="true" />
+        <Inbox className="mb-3 size-9 text-slate-300 dark:text-slate-600" aria-hidden="true" />
         <p className="text-sm font-medium text-foreground">
           {data.error
             ? 'Data tidak tersedia'
@@ -201,7 +201,7 @@ export function DataTable({ data }: { data: ReportData }) {
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-center gap-2">
+      <div className="no-print mb-3 flex flex-wrap items-center gap-2">
         <div className="relative w-full min-w-0 sm:max-w-xs sm:flex-1">
           <Search
             className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
@@ -320,7 +320,7 @@ export function DataTable({ data }: { data: ReportData }) {
                             : 'text-foreground/85',
                         )}
                       >
-                        {blank ? <span className="text-slate-300">—</span> : v}
+                        {blank ? <span className="text-slate-300 dark:text-slate-600">—</span> : v}
                       </TableCell>
                     )
                   })}

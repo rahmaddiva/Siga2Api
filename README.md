@@ -273,21 +273,31 @@ public/data/
   krs/…
   elsimil/…
 
+public/
+  manifest.webmanifest       # PWA: nama, ikon, warna tema
+  sw.js                      # service worker (app shell, data, aset)
+  icons/                     # ikon 192/512 + maskable (dibuat scripts/make_icons.mjs)
+
 scripts/
   build_snapshot.py          # panen + parse laporan -> JSON
   fetch_verval.py            # ambil data verval (mode masked by default)
+  make_icons.mjs             # generate ikon PNG tanpa dependency
 
 src/
   App.tsx                    # shell: header sticky, sidebar (Sheet di mobile), area konten
   components/
     Sidebar.tsx              # navigasi modul + pencarian laporan
-    ReportView.tsx           # header laporan + unduh CSV + banner peringatan
+    ReportView.tsx           # header laporan + unduh CSV/Excel + banner peringatan
     PeriodPicker.tsx         # chip periode (ToggleGroup)
     WilayahPicker.tsx        # dropdown kecamatan + desa (Select)
     VervalView.tsx           # modul Verval KRS (live, agregat)
     DataTable.tsx            # tabel: header bertingkat, sort, filter, sembunyikan kolom kosong
     Dashboard.tsx            # ringkasan modul: KPI, cakupan modul, laporan teratas
+    ThemeToggle.tsx          # pilih tema terang/gelap/ikuti sistem
     ui/                      # primitives shadcn/ui (button, card, table, alert, …)
+  lib/route.ts               # parse/build hash deep-link (tanpa router)
+  lib/export.ts              # unduh CSV + Excel (SpreadsheetML)
+  lib/modules.ts             # ikon & metadata modul bersama
   lib/data.ts                # loader + label helper
   lib/jasper.ts              # parser HTML JasperReports (port dari build_snapshot.py)
   lib/live.ts                # pengambilan laporan live per kecamatan
@@ -318,8 +328,18 @@ src/
 - Sidebar dirender dua kali (aside desktop + Sheet mobile); setiap instance wajib
   diberi `idPrefix` berbeda agar `id` DOM tidak kembar. Modul memakai pola akordeon
   satu-terbuka: 300 laporan sekaligus tidak terbaca.
-- Memilih modul menampilkan `Dashboard` modul itu (`active = null`); memilih laporan
-  baru mengisi `ReportView`. Breadcrumb di `ReportView` mengembalikan ke dashboard.
+- Memilih modul menampilkan `Dashboard` modul itu; memilih laporan baru mengisi
+  `ReportView`. Breadcrumb di `ReportView` mengembalikan ke dashboard.
+- **Semua state tampilan ada di URL** (`src/lib/route.ts`). `App.tsx` membaca
+  `location.hash`, jadi periode, kecamatan, dan desa bisa di-deep-link dan tombol
+  Back/Forward berfungsi. Pindah halaman memakai `pushState`; mengubah periode atau
+  wilayah memakai `replaceState` agar riwayat tidak dipenuhi klik chip.
+- Mode gelap memakai token `.dark` di `index.css` (bukan hanya media query) karena
+  varian Tailwind-nya `@custom-variant dark (&:is(.dark *))`. `index.html` menerapkan
+  class itu sebelum React hidup supaya tidak ada kedipan putih.
+- Mencetak: elemen non-konten diberi class `.no-print`; aturan `@media print` di
+  `index.css` membuka scroller tabel agar semua baris ikut tercetak (bukan hanya
+  yang terlihat di layar) dan memaksa skema terang.
 
 ### Format satu file laporan
 
@@ -435,3 +455,38 @@ gateway SIGA membalas tanpa memeriksa `Authorization` (temuan §13.1 di
 `reverse-engineering.md`). Konsekuensinya, kalau pemilik sistem menegakkan autentikasi,
 fitur ini akan berhenti dengan banner galat — bukan diam-diam menampilkan angka salah.
 Aplikasi tetap tidak mengirim, menyimpan, atau meminta token apa pun.
+
+### Deep link
+
+Semua tampilan punya URL sendiri, jadi bisa dikirim lewat WhatsApp/email dan dibuka
+langsung pada laporan yang sama.
+
+| URL | Tampilan |
+|-----|----------|
+| `#/` | dashboard YAN KB |
+| `#/dallap` | dashboard DALLAP |
+| `#/yankb/tabel38c` | laporan Tabel38C, periode default |
+| `#/yankb/tabel38c/2026-03` | laporan Tabel38C periode Maret 2026 |
+| `#/yankb/tabel38c/2026-03?kec=6157&desa=55467` | + rincian Kec. Takisung / Desa Banua Lawas |
+| `#/verval?tahun=2025&semester=1&kec=6157` | Verval KRS semester I 2025 per kecamatan |
+
+URL yang tidak dikenal tidak pernah menghasilkan layar kosong: modul asing jatuh ke
+dashboard default, laporan yang tidak ada di katalog jatuh ke dashboard modulnya, dan
+periode yang tidak tersedia diganti periode awal laporan itu.
+
+### PWA & offline
+
+`public/sw.js` memakai tiga strategi: navigasi network-first (fallback app shell),
+`/data/*` stale-while-revalidate, dan aset ber-hash cache-first. Snapshot 7,9 MB
+sengaja **tidak** di-precache — 1851 berkas akan menggantung instalasi di jaringan
+lambat; berkas data masuk cache saat benar-benar dibuka. Service worker hanya
+didaftarkan pada build produksi (`import.meta.env.PROD`), karena saat `vite dev`
+cache SW akan menyajikan bundel basi.
+
+### Ekspor
+
+Tombol **CSV** dan **Excel** mengunduh tabel yang sedang tampil (termasuk hasil
+saringan wilayah). Excel memakai SpreadsheetML 2003 (`.xls`, satu berkas XML) —
+bukan `.xlsx`, yang merupakan arsip ZIP dan butuh library. SpreadsheetML dibuka
+Excel/LibreOffice tanpa peringatan, mendukung header bertingkat, lebar kolom, tipe
+angka, dan freeze panes.

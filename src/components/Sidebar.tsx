@@ -244,7 +244,7 @@ export function Sidebar({
                                   </span>
                                   {filled === 0 ? (
                                     <span
-                                      className="mt-1.5 size-1.5 shrink-0 rounded-full bg-slate-300"
+                                      className="mt-1.5 size-1.5 shrink-0 rounded-full bg-slate-300 dark:bg-slate-600"
                                       title="Belum ada data pada semua periode"
                                     />
                                   ) : (

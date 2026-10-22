@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Download, Loader2, Radio } from 'lucide-react'
+import { AlertTriangle, Download, FileSpreadsheet, Loader2, Radio } from 'lucide-react'
 
 import type { ReportData } from '@/lib/data'
 import { fetchVerval, VERVAL_COLUMNS, type VervalData } from '@/lib/verval'
 import { loadWilayah } from '@/lib/wilayah'
+import { downloadExcel } from '@/lib/export'
 import { DataTable } from '@/components/DataTable'
 import { WilayahPicker } from '@/components/WilayahPicker'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -21,6 +22,15 @@ import { Skeleton } from '@/components/ui/skeleton'
 const TAHUN = [2026, 2025, 2024, 2023]
 
 type Props = {
+  /** Semua filter dikendalikan induk (URL) agar tampilan bisa di-deep-link. */
+  tahun: number
+  semester: 1 | 2
+  kecamatanId: number | null
+  desaId: number | null
+  onChange: (
+    next: { tahun: number; semester: 1 | 2; kec: number | null; desa: number | null },
+    mode: 'push' | 'replace',
+  ) => void
   onDownload: (data: ReportData, suffix: string) => void
 }
 
@@ -32,11 +42,15 @@ type Props = {
  * s.d. semester II 2023/2024). Angka verval terkini justru ada di endpoint
  * `getMonitoringKrs`.
  */
-export function VervalView({ onDownload }: Props) {
-  const [tahun, setTahun] = useState(2026)
-  const [periode, setPeriode] = useState<1 | 2>(2)
-  const [kecamatanId, setKecamatanId] = useState<number | null>(null)
-  const [desaId, setDesaId] = useState<number | null>(null)
+export function VervalView({
+  tahun,
+  semester,
+  kecamatanId,
+  desaId,
+  onChange,
+  onDownload,
+}: Props) {
+  const periode = semester
   const [data, setData] = useState<VervalData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -119,6 +133,11 @@ export function VervalView({ onDownload }: Props) {
 
   const level = kecamatanId === null ? 'kecamatan' : 'desa/kelurahan'
 
+  /** Akhiran nama berkas agar unduhan antar wilayah/semester tidak tertukar. */
+  const suffix = `-verval-${tahun}-S${periode}${nama.kec ? `-${nama.kec.toLowerCase()}` : ''}${
+    nama.desa ? `-${nama.desa.toLowerCase()}` : ''
+  }`
+
   return (
     <section aria-labelledby="judul-verval" className="min-w-0">
       <header className="mb-5">
@@ -143,28 +162,30 @@ export function VervalView({ onDownload }: Props) {
               </Badge>
             </div>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            className="shrink-0"
-            disabled={!table || table.empty}
-            onClick={() =>
-              table &&
-              onDownload(
-                table,
-                `-verval-${tahun}-S${periode}${nama.kec ? `-${nama.kec.toLowerCase()}` : ''}${
-                  nama.desa ? `-${nama.desa.toLowerCase()}` : ''
-                }`,
-              )
-            }
-          >
-            <Download />
-            Unduh CSV
-          </Button>
+          <div className="no-print flex shrink-0 items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!table || table.empty}
+              onClick={() => table && onDownload(table, suffix)}
+            >
+              <Download />
+              CSV
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!table || table.empty}
+              onClick={() => table && downloadExcel(table, suffix)}
+            >
+              <FileSpreadsheet />
+              Excel
+            </Button>
+          </div>
         </div>
       </header>
 
-      <div className="mb-5 rounded-lg border border-border bg-card">
+      <div className="no-print mb-5 rounded-lg border border-border bg-card">
         <div className="flex flex-col gap-4 p-4">
           <div>
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -176,7 +197,7 @@ export function VervalView({ onDownload }: Props) {
             <div className="flex flex-wrap items-center gap-2">
               <Select
                 value={String(tahun)}
-                onValueChange={(v) => setTahun(Number(v))}
+                onValueChange={(v) => onChange({ tahun: Number(v), semester, kec: kecamatanId, desa: desaId }, 'replace')}
                 disabled={loading && !data}
               >
                 <SelectTrigger className="w-[7.5rem]" aria-label="Pilih tahun">
@@ -191,8 +212,13 @@ export function VervalView({ onDownload }: Props) {
                 </SelectContent>
               </Select>
               <Select
-                value={String(periode)}
-                onValueChange={(v) => setPeriode(Number(v) === 1 ? 1 : 2)}
+                value={String(semester)}
+                onValueChange={(v) =>
+                  onChange(
+                    { tahun, semester: Number(v) === 1 ? 1 : 2, kec: kecamatanId, desa: desaId },
+                    'replace',
+                  )
+                }
                 disabled={loading && !data}
               >
                 <SelectTrigger className="w-[11rem]" aria-label="Pilih semester">
@@ -209,8 +235,8 @@ export function VervalView({ onDownload }: Props) {
           <WilayahPicker
             kecamatanId={kecamatanId}
             desaId={desaId}
-            onKecamatanChange={setKecamatanId}
-            onDesaChange={setDesaId}
+            onKecamatanChange={(id) => onChange({ tahun, semester, kec: id, desa: null }, 'replace')}
+            onDesaChange={(id) => onChange({ tahun, semester, kec: kecamatanId, desa: id }, 'replace')}
             desaAvailable
             disabled={loading && !data}
             className="border-t border-border pt-4"

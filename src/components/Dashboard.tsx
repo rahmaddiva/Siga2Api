@@ -193,7 +193,7 @@ export function Dashboard({ index, moduleId, onSelect, onSelectModule }: Props) 
                 <div className="mt-auto">
                   <div className="h-1 overflow-hidden rounded-full bg-muted">
                     <div
-                      className={cn('h-full rounded-full', isActive ? 'bg-primary' : 'bg-slate-500')}
+                      className={cn('h-full rounded-full', isActive ? 'bg-primary' : 'bg-slate-400 dark:bg-slate-500')}
                       style={{ width: `${percent}%` }}
                     />
                   </div>

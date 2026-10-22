@@ -1,16 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, ChevronRight, Download, Loader2, Radio } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { AlertTriangle, ChevronRight, Download, FileSpreadsheet, Loader2, Radio } from 'lucide-react'
 
 import type { PeriodEntry, ReportData, ReportEntry } from '@/lib/data'
-import {
-  cleanDescription,
-  isAllDataZero,
-  loadReport,
-  pickInitialPeriod,
-  prettyGroup,
-} from '@/lib/data'
+import { cleanDescription, isAllDataZero, loadReport, prettyGroup } from '@/lib/data'
 import { fetchLiveReport, type LiveResult } from '@/lib/live'
 import { DESA_AWARE_MODULES, loadWilayah } from '@/lib/wilayah'
+import { downloadExcel } from '@/lib/export'
 import { DataTable } from '@/components/DataTable'
 import { PeriodPicker } from '@/components/PeriodPicker'
 import { WilayahPicker } from '@/components/WilayahPicker'
@@ -21,8 +16,13 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 type Props = {
   entry: ReportEntry
+  /** Periode & wilayah dikendalikan induk (URL) agar tampilan bisa di-deep-link. */
+  period: PeriodEntry | null
+  kecamatanId: number | null
+  desaId: number | null
+  onPeriodChange: (p: PeriodEntry) => void
+  onWilayahChange: (kecamatanId: number | null, desaId: number | null) => void
   onDownload: (data: ReportData, suffix: string) => void
-  onPeriodChange?: (p: PeriodEntry) => void
   /** Kembali ke ringkasan modul (dashboard). */
   onBackToDashboard?: () => void
 }
@@ -60,37 +60,28 @@ function filterByDesa(data: ReportData, desaNama: string): ReportData {
   return { ...data, rows, empty: rows.length === 0 }
 }
 
-export function ReportView({ entry, onDownload, onPeriodChange, onBackToDashboard }: Props) {
-  const [period, setPeriod] = useState<PeriodEntry | null>(() =>
-    pickInitialPeriod(entry.periods),
-  )
+export function ReportView({
+  entry,
+  period,
+  kecamatanId,
+  desaId,
+  onPeriodChange,
+  onWilayahChange,
+  onDownload,
+  onBackToDashboard,
+}: Props) {
   const [data, setData] = useState<ReportData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const [kecamatanId, setKecamatanId] = useState<number | null>(null)
-  const [desaId, setDesaId] = useState<number | null>(null)
   const [live, setLive] = useState<LiveResult | null>(null)
   const [liveError, setLiveError] = useState<string | null>(null)
   const [liveLoading, setLiveLoading] = useState(false)
   const [wilayah, setWilayah] = useState<{ kecNama: string; desaNama: string } | null>(null)
 
-  // Simpan callback di ref agar efek di bawah tidak ikut jalan saat induk
-  // merender ulang dengan fungsi baru (bisa mereset periode pilihan pengguna).
-  const notifyRef = useRef(onPeriodChange)
-  notifyRef.current = onPeriodChange
-
-  useEffect(() => {
-    const next = pickInitialPeriod(entry.periods)
-    setPeriod(next)
-    if (next) notifyRef.current?.(next)
-  }, [entry])
-
   // Pilihan wilayah tidak berlaku lintas laporan: kecamatan berbeda punya
   // desa berbeda, dan tidak semua modul dirinci per desa.
   useEffect(() => {
-    setKecamatanId(null)
-    setDesaId(null)
     setLive(null)
     setLiveError(null)
     setWilayah(null)
@@ -250,36 +241,43 @@ export function ReportView({ entry, onDownload, onPeriodChange, onBackToDashboar
             )}
           </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            className="shrink-0"
-            onClick={() => view && onDownload(view, downloadSuffix)}
-            disabled={!view || view.empty}
-          >
-            <Download />
-            Unduh CSV
-          </Button>
+          <div className="no-print flex shrink-0 items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => view && onDownload(view, downloadSuffix)}
+              disabled={!view || view.empty}
+            >
+              <Download />
+              CSV
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => view && downloadExcel(view, downloadSuffix)}
+              disabled={!view || view.empty}
+            >
+              <FileSpreadsheet />
+              Excel
+            </Button>
+          </div>
         </div>
       </header>
 
-      <div className="mb-5 rounded-lg border border-border bg-card">
+      <div className="no-print mb-5 rounded-lg border border-border bg-card">
         <div className="flex flex-col gap-4 p-4">
           <PeriodPicker
             periods={entry.periods}
             activeKey={period?.key ?? null}
             periodType={entry.periodType}
-            onSelect={(p) => {
-              setPeriod(p)
-              notifyRef.current?.(p)
-            }}
+            onSelect={onPeriodChange}
           />
 
           <WilayahPicker
             kecamatanId={kecamatanId}
             desaId={desaId}
-            onKecamatanChange={setKecamatanId}
-            onDesaChange={setDesaId}
+            onKecamatanChange={(id) => onWilayahChange(id, null)}
+            onDesaChange={(id) => onWilayahChange(kecamatanId, id)}
             desaAvailable={DESA_AWARE_MODULES[entry.module] === true}
             disabled={loading || !period}
             className="border-t border-border pt-4"

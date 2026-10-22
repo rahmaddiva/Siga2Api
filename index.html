@@ -4,10 +4,30 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Siga2Api — Data Laporan BKKBN Kab. Tanah Laut</title>
-    <meta name="description" content="Penampil data laporan SIGA: YAN KB, DALLAP, Keluarga Berisiko Stunting, dan ELSIMIL untuk Kabupaten Tanah Laut, Kalimantan Selatan." />
+    <meta name="description" content="Penampil data laporan SIGA: YAN KB, DALLAP, Keluarga Berisiko Stunting, ELSIMIL, dan Verval KRS untuk Kabupaten Tanah Laut, Kalimantan Selatan." />
+    <meta name="theme-color" content="#1d4ed8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <script>
+      // Terapkan tema sebelum React hidup supaya tidak ada kedipan putih saat
+      // pengguna memilih mode gelap. Kunci & nilai harus sama dengan ThemeToggle.
+      (function () {
+        try {
+          var saved = localStorage.getItem('siga2api-theme')
+          var dark =
+            saved === 'dark' ||
+            ((saved === 'system' || !saved) &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches)
+          document.documentElement.classList.toggle('dark', dark)
+          document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body class="h-full">
     <div id="root"></div>

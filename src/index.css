@@ -68,6 +68,64 @@
   --sidebar-ring: #1d4ed8;
 }
 
+/*
+ * Mode gelap: basis slate gelap (bukan hitam pekat) agar kontras tidak
+ * menyilaukan di ruangan terang, dan agar tabel angka tetap terbaca. Aksen
+ * biru dicerahkan karena #1d4ed8 tidak lolos 4.5:1 di atas latar gelap.
+ * Rasio terukur: teks/card 14.5:1, muted-foreground/card 6.7:1,
+ * primary/background 7.4:1, warning 9.7:1, destructive 6.4:1.
+ */
+.dark {
+  --background: #0b1220;
+  --foreground: #e6edf7;
+
+  --card: #141c2b;
+  --card-foreground: #e6edf7;
+  --popover: #141c2b;
+  --popover-foreground: #e6edf7;
+
+  --primary: #60a5fa;
+  /* Teks di atas primary biru-terang harus gelap, bukan putih. */
+  --primary-foreground: #0b1220;
+
+  --secondary: #1b2536;
+  --secondary-foreground: #e6edf7;
+
+  --muted: #1b2536;
+  --muted-foreground: #94a3b8;
+
+  --accent: #1f2a3c;
+  --accent-foreground: #e6edf7;
+
+  --destructive: #f87171;
+  --destructive-foreground: #0b1220;
+  --success: #4ade80;
+  --success-foreground: #0b1220;
+  --warning: #fbbf24;
+  --warning-foreground: #fcd34d;
+  --warning-surface: #2a1f0a;
+  --destructive-surface: #2a1214;
+
+  --border: #263244;
+  --input: #33415a;
+  --ring: #60a5fa;
+
+  --chart-1: #60a5fa;
+  --chart-2: #2dd4bf;
+  --chart-3: #38bdf8;
+  --chart-4: #fbbf24;
+  --chart-5: #a78bfa;
+
+  --sidebar: #0f1727;
+  --sidebar-foreground: #e6edf7;
+  --sidebar-primary: #60a5fa;
+  --sidebar-primary-foreground: #0b1220;
+  --sidebar-accent: #1b2536;
+  --sidebar-accent-foreground: #e6edf7;
+  --sidebar-border: #263244;
+  --sidebar-ring: #60a5fa;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -144,6 +202,11 @@
     background: #dbeafe;
     color: #0f172a;
   }
+
+  .dark ::selection {
+    background: #1e3a5f;
+    color: #e6edf7;
+  }
 }
 
 @layer utilities {
@@ -167,9 +230,16 @@
     scrollbar-width: thin;
     scrollbar-color: #cbd5e1 transparent;
   }
+
+  .dark .thin-scroll {
+    scrollbar-color: #3b4a63 transparent;
+  }
   .thin-scroll::-webkit-scrollbar {
     height: 10px;
     width: 10px;
+  }
+  .dark .thin-scroll::-webkit-scrollbar-thumb {
+    background: #3b4a63;
   }
   .thin-scroll::-webkit-scrollbar-thumb {
     background: #cbd5e1;
@@ -207,4 +277,106 @@ textarea:focus-visible,
 [tabindex]:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+/*
+ * Cetak: laporan ini dipakai untuk dicetak/di-PDF, jadi yang tercetak hanya
+ * judul + tabel. Sidebar, header, tombol, dan panel filter disembunyikan lewat
+ * `.no-print` (dipasang di komponen, bukan ditebak lewat selector struktural).
+ * Scroller tabel dibuka paksa: `Table` membatasi `maxHeight`, dan tanpa ini
+ * hanya baris yang terlihat di layar yang ikut tercetak.
+ */
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  /* Selalu cetak terang, walau pengguna memakai mode gelap — tabel gelap
+     memboroskan tinta dan sering hilang saat dicetak hitam-putih. */
+  :root,
+  .dark {
+    --background: #ffffff;
+    --foreground: #000000;
+    --card: #ffffff;
+    --card-foreground: #000000;
+    --popover: #ffffff;
+    --popover-foreground: #000000;
+    --primary: #1d4ed8;
+    --primary-foreground: #ffffff;
+    --secondary: #f1f4f8;
+    --secondary-foreground: #000000;
+    --muted: #f1f4f8;
+    --muted-foreground: #3f4956;
+    --accent: #f1f4f8;
+    --accent-foreground: #000000;
+    --border: #c8cdd6;
+    --input: #c8cdd6;
+    --warning-surface: #fffbeb;
+    --warning-foreground: #7c2d12;
+    --destructive-surface: #fef2f2;
+    --destructive: #b91c1c;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .no-print,
+  [data-slot='sheet'],
+  [data-slot='sheet-overlay'] {
+    display: none !important;
+  }
+
+  /* Kontainer aplikasi memakai h-dvh + overflow-y-auto; saat cetak harus
+     mengalir bebas agar semua baris ikut. */
+  .thin-scroll,
+  [data-slot='table-container'] {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+
+  main,
+  body > div,
+  #root {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    max-width: none !important;
+  }
+
+  main > div {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  /* Header tabel diulang di setiap halaman, dan satu baris tidak dipotong. */
+  thead {
+    display: table-header-group;
+  }
+
+  tr,
+  img,
+  svg {
+    break-inside: avoid;
+  }
+
+  table {
+    width: 100% !important;
+    min-width: 0 !important;
+    font-size: 9pt;
+  }
+
+  th,
+  td {
+    padding: 3px 5px !important;
+    white-space: normal !important;
+  }
+
+  a[href]::after {
+    content: '';
+  }
 }
