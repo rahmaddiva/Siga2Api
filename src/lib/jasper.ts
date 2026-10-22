@@ -134,6 +134,12 @@ export function periodStatus(
   return 'match'
 }
 
+/**
+ * Baris footer JasperReports. Tanda ":" wajib ada supaya nama wilayah yang
+ * kebetulan diawali kata kunci ini ("SUMBER MAKMUR") tidak ikut dibuang.
+ */
+const FOOTER_RE = /^(sumber|dicetak|diprint|halaman|page|cetak)\s*:/i
+
 type Span = [start: number, colspan: number, text: string]
 
 /** Ekspansi `colspan`/`rowspan` menjadi grid penuh + rentang sel asli per baris. */
@@ -206,10 +212,19 @@ export function parseReport(html: string): ParsedReport {
     return { ...EMPTY, emptyReason: 'no-data' }
   }
 
+  /**
+   * Sel dipecah jadi kata: label gabungan seperti "DESA/KELURAHAN" atau
+   * "JUMLAH KELOMPOK KEGIATAN ..." tidak pernah cocok bila dibandingkan utuh,
+   * sehingga header asli terlewat dan seluruh tabel bergeser (Tabel22D
+   * berakhir dengan kolom ":" dan "Kolom 12..30").
+   */
   const isTableHeaderRow = (row: string[]) => {
-    const toks = new Set(
-      row.filter((v) => v.trim()).map((v) => v.trim().toUpperCase().replace(/\.+$/, '')),
-    )
+    const toks = new Set<string>()
+    for (const v of row) {
+      for (const w of v.toUpperCase().split(/[^A-Z0-9]+/)) {
+        if (w) toks.add(w)
+      }
+    }
     let hits = 0
     for (const t of toks) if (HEADER_HINT.includes(t)) hits += 1
     return hits >= 2
@@ -377,8 +392,11 @@ export function parseReport(html: string): ParsedReport {
       if (!row.some((v) => v.trim())) continue
       if (isIndexRow(row)) continue
       const filled = row.filter((v) => v.trim())
-      // Footer JasperReports ("Sumber: …", "Dicetak: …") bukan data.
-      if (filled.length <= 2 && /^(sumber|dicetak|diprint|halaman|page|cetak)\b/i.test(filled[0].trim())) {
+      // Footer JasperReports ("Sumber: SIGA", "Dicetak: 22/10/2026") bukan data.
+      // Kata kuncinya WAJIB diikuti ":" — tanpa itu, desa bernama "SUMBER
+      // MAKMUR" / "SUMBER MULIA" / "SUMBER JAYA" ikut terbuang, dan laporan
+      // per kecamatan kehilangan baris desa tersebut (filter desa lalu kosong).
+      if (filled.length <= 2 && FOOTER_RE.test(filled[0].trim())) {
         continue
       }
       rows.push(row)

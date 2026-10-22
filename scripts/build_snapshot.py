@@ -274,8 +274,18 @@ def parse_report(html: str) -> dict:
                 "empty": True, "emptyReason": "no-data"}
 
     def is_table_header_row(row: list[str]) -> bool:
-        """Baris judul kolom tabel (bukan metadata), mis. NO/KODE/KECAMATAN."""
-        toks = {v.strip().upper().rstrip(".") for v in row if v.strip()}
+        """Baris judul kolom tabel (bukan metadata), mis. NO/KODE/KECAMATAN.
+
+        Sel dipecah jadi kata: label gabungan seperti "DESA/KELURAHAN" atau
+        "JUMLAH KELOMPOK KEGIATAN ..." tidak pernah cocok bila dibandingkan utuh,
+        sehingga header asli terlewat dan seluruh tabel bergeser (Tabel22D
+        berakhir dengan kolom ":" dan "Kolom 12..30").
+        """
+        toks: set[str] = set()
+        for v in row:
+            for w in re.split(r"[^A-Za-z0-9]+", v.upper()):
+                if w:
+                    toks.add(w)
         return len(toks & set(HEADER_HINT)) >= 2
 
     def wilayah_pairs(vals: list[str]):
@@ -352,14 +362,26 @@ def parse_report(html: str) -> dict:
                 subtitle = t
 
     # --- 3. blok header
+    # Utamakan baris yang benar-benar berisi >=2 judul kolom. Heuristik lama
+    # ("mengandung satu kata hint") menangkap baris METADATA seperti
+    # "Kecamatan : TAKISUNG", sehingga header asli terlewat dan tabel bergeser
+    # (Tabel22D: kolom ":" + "Kolom 12..30", nama desa tidak terbaca).
     header_idx = None
     for i, row in enumerate(grid):
         vals = [v for v in row if v]
         if len(vals) < 3:
             continue
-        if any(any(h in v.upper() for h in HEADER_HINT) for v in vals):
+        if is_table_header_row(row):
             header_idx = i
             break
+    if header_idx is None:
+        for i, row in enumerate(grid):
+            vals = [v for v in row if v]
+            if len(vals) < 3:
+                continue
+            if any(any(h in v.upper() for h in HEADER_HINT) for v in vals):
+                header_idx = i
+                break
 
     def is_index_row(row: list[str]) -> bool:
         """Baris penomoran kolom: (1) (2) (3) 3=4+12+13 6=5/4*100 — bukan header/data."""
@@ -457,9 +479,12 @@ def parse_report(html: str) -> dict:
             if is_index_row(row):
                 continue
             # Baris footer JasperReports ("Sumber: ...", "Dicetak: ...") bukan data.
+            # Tanda ":" wajib ada: tanpa itu desa bernama "SUMBER MAKMUR" /
+            # "SUMBER MULIA" / "SUMBER JAYA" ikut terbuang dan laporan per
+            # kecamatan kehilangan baris desa tersebut.
             filled = [v for v in row if v.strip()]
             if len(filled) <= 2 and re.match(
-                r"^(sumber|dicetak|diprint|halaman|page|cetak)\b", filled[0].strip(), re.I
+                r"^(sumber|dicetak|diprint|halaman|page|cetak)\s*:", filled[0].strip(), re.I
             ):
                 continue
             rows.append(row)
