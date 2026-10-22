@@ -174,8 +174,8 @@ export function DataTable({ data }: { data: ReportData }) {
 
   if (data.empty) {
     return (
-      <div className="flex flex-col items-center rounded-xl border border-dashed border-input bg-card px-6 py-16 text-center">
-        <Inbox className="mb-3 size-10 text-slate-300" aria-hidden="true" />
+      <div className="flex flex-col items-center rounded-lg border border-dashed border-input bg-card px-6 py-14 text-center">
+        <Inbox className="mb-3 size-9 text-slate-300" aria-hidden="true" />
         <p className="text-sm font-medium text-foreground">
           {data.error
             ? 'Data tidak tersedia'
@@ -204,7 +204,7 @@ export function DataTable({ data }: { data: ReportData }) {
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <div className="relative w-full min-w-0 sm:max-w-xs sm:flex-1">
           <Search
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden="true"
           />
           <Input
@@ -213,11 +213,11 @@ export function DataTable({ data }: { data: ReportData }) {
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Cari di dalam tabel…"
             aria-label="Cari di dalam tabel"
-            className="pl-9"
+            className="pl-8.5"
           />
         </div>
 
-        <label className="flex cursor-pointer items-center gap-2 rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground transition-colors hover:bg-accent">
+        <label className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-[13px] text-foreground transition-colors hover:bg-accent">
           <Checkbox
             checked={hideEmptyCols}
             onCheckedChange={(v) => setHideEmptyCols(v === true)}
@@ -232,15 +232,17 @@ export function DataTable({ data }: { data: ReportData }) {
         </p>
       </div>
 
-      <div className="rounded-xl border border-border bg-card">
+      <div className="overflow-hidden rounded-lg border border-border bg-card">
         <Table containerClassName="thin-scroll" maxHeight="min(70vh, 40rem)">
           <TableCaption className="sr-only">
             {data.title} — {cleanDescription(data.description)}
           </TableCaption>
           <TableHeader>
             {headerGroups.length === 0 ? (
-              <TableRow className="hover:bg-muted">
-                <TableHead className="w-10 px-2 text-right text-muted-foreground">#</TableHead>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-10 px-2 text-right font-medium text-muted-foreground">
+                  #
+                </TableHead>
                 {keepCols.map((i) => (
                   <SortableHead
                     key={i}
@@ -253,11 +255,11 @@ export function DataTable({ data }: { data: ReportData }) {
               </TableRow>
             ) : (
               headerGroups.map((level, li) => (
-                <TableRow key={`h${li}`} className="hover:bg-muted">
+                <TableRow key={`h${li}`} className="hover:bg-transparent">
                   {li === 0 && (
                     <TableHead
                       rowSpan={headerGroups.length}
-                      className="w-10 px-2 text-right align-bottom text-muted-foreground"
+                      className="w-10 px-2 text-right align-bottom font-medium text-muted-foreground"
                     >
                       #
                     </TableHead>
@@ -277,7 +279,7 @@ export function DataTable({ data }: { data: ReportData }) {
                         key={cell.key}
                         colSpan={cell.span}
                         rowSpan={cell.rowSpan > 1 ? cell.rowSpan : undefined}
-                        className="border-l border-border/60 px-3 text-left align-bottom"
+                        className="border-l border-border px-3 text-left align-bottom"
                       >
                         <span className="line-clamp-3 whitespace-normal">{cell.label}</span>
                       </TableHead>
@@ -291,7 +293,11 @@ export function DataTable({ data }: { data: ReportData }) {
             {rows.map((r, ri) => {
               const isTotal = /^(JUMLAH|TOTAL|SUB\s*JUMLAH)/i.test(r[0] ?? '')
               return (
-                <TableRow key={ri} data-total={isTotal || undefined}>
+                <TableRow
+                  key={ri}
+                  data-total={isTotal || undefined}
+                  className={cn(isTotal && 'bg-muted/70 hover:bg-muted')}
+                >
                   <TableCell className="tabular px-2 text-right text-xs text-muted-foreground">
                     {ri + 1}
                   </TableCell>
@@ -309,7 +315,9 @@ export function DataTable({ data }: { data: ReportData }) {
                         className={cn(
                           'whitespace-normal',
                           numeric ? 'tabular text-right' : 'text-left',
-                          isTotal ? 'font-semibold text-foreground' : 'text-foreground/80',
+                          isTotal
+                            ? 'font-semibold text-foreground'
+                            : 'text-foreground/85',
                         )}
                       >
                         {blank ? <span className="text-slate-300">—</span> : v}

@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 
 type Props = {
   /** `null` = seluruh kabupaten (snapshot statis). */
@@ -19,6 +20,7 @@ type Props = {
   /** Modul tanpa rincian desa (YAN KB): dropdown desa dinonaktifkan. */
   desaAvailable: boolean
   disabled?: boolean
+  className?: string
 }
 
 const ALL = '__all__'
@@ -38,6 +40,7 @@ export function WilayahPicker({
   onDesaChange,
   desaAvailable,
   disabled,
+  className,
 }: Props) {
   const [kecamatan, setKecamatan] = useState<Kecamatan[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -61,24 +64,22 @@ export function WilayahPicker({
     [kecamatan, kecamatanId],
   )
 
+  const level =
+    kecamatanId === null ? 'seluruh kabupaten' : desaId === null ? 'satu kecamatan' : 'satu desa'
+
   return (
-    <div className="mb-4">
-      <div className="mb-1.5 flex items-center gap-2">
-        <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-          Rincian wilayah
-        </span>
-        <span className="text-xs text-muted-foreground">
-          {kecamatanId === null
-            ? 'seluruh kabupaten'
-            : desaId === null
-              ? 'satu kecamatan'
-              : 'satu desa'}
-        </span>
+    <div className={className}>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <span className="eyebrow">Rincian wilayah</span>
+        <span className="text-xs text-muted-foreground">{level}</span>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1.5">
-          <MapPin className="size-4 text-muted-foreground" aria-hidden="true" />
+        <div className="relative flex items-center">
+          <MapPin
+            className="pointer-events-none absolute left-2.5 size-3.5 text-muted-foreground"
+            aria-hidden="true"
+          />
           <Select
             value={kecamatanId === null ? ALL : String(kecamatanId)}
             onValueChange={(v) => {
@@ -87,7 +88,10 @@ export function WilayahPicker({
             }}
             disabled={disabled || !kecamatan}
           >
-            <SelectTrigger className="w-[min(16rem,70vw)]" aria-label="Pilih kecamatan">
+            <SelectTrigger
+              className="w-[min(17rem,72vw)] pl-8"
+              aria-label="Pilih kecamatan"
+            >
               <SelectValue placeholder={error ? 'Gagal memuat wilayah' : 'Kecamatan'} />
             </SelectTrigger>
             <SelectContent>
@@ -106,7 +110,10 @@ export function WilayahPicker({
           onValueChange={(v) => onDesaChange(v === ALL ? null : Number(v))}
           disabled={disabled || kecamatanId === null || !desaAvailable || desa.length === 0}
         >
-          <SelectTrigger className="w-[min(16rem,70vw)]" aria-label="Pilih desa/kelurahan">
+          <SelectTrigger
+            className={cn('w-[min(17rem,72vw)]', kecamatanId === null && 'opacity-60')}
+            aria-label="Pilih desa/kelurahan"
+          >
             <SelectValue placeholder="Desa/kelurahan" />
           </SelectTrigger>
           <SelectContent>
@@ -127,7 +134,7 @@ export function WilayahPicker({
 
         {!desaAvailable && !error && (
           <span className="text-xs text-muted-foreground">
-            Laporan modul ini tidak dirinci per desa (barisnya faskes).
+            Modul ini tidak dirinci per desa (barisnya faskes).
           </span>
         )}
       </div>

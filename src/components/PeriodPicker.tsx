@@ -11,6 +11,12 @@ type Props = {
   periodType: PeriodType
 }
 
+const PERIOD_LABEL: Record<PeriodType, string> = {
+  monthly: 'Periode bulanan',
+  cumulative: 'Periode kumulatif',
+  annual: 'Periode tahunan',
+}
+
 /**
  * Pemilih periode. Untuk laporan bulanan tampil sebagai baris chip yang bisa
  * digeser; untuk laporan tahunan cukup satu chip per tahun.
@@ -20,23 +26,18 @@ export function PeriodPicker({ periods, activeKey, onSelect, periodType }: Props
 
   // Urutkan kronologis (index sudah desc, kita tampilkan asc agar bulan mengalir kiri→kanan)
   const ordered = [...periods].sort((a, b) => a.key.localeCompare(b.key))
+  const available = periods.filter((p) => !p.empty && !p.error).length
 
   return (
-    <div className="mb-4">
-      <div className="mb-1.5 flex items-center gap-2">
-        <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-          {periodType === 'monthly'
-            ? 'Periode bulanan'
-            : periodType === 'cumulative'
-              ? 'Periode kumulatif'
-              : 'Periode tahunan'}
-        </span>
+    <div>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <span className="eyebrow">{PERIOD_LABEL[periodType]}</span>
         <span className="tabular text-xs text-muted-foreground">
-          {periods.filter((p) => !p.empty && !p.error).length}/{periods.length} tersedia
+          {available}/{periods.length} tersedia
         </span>
       </div>
 
-      <div className="thin-scroll overflow-x-auto pb-1">
+      <div className="thin-scroll -mx-0.5 overflow-x-auto px-0.5 pb-1">
         <ToggleGroup
           type="single"
           value={activeKey ?? ''}
@@ -45,7 +46,7 @@ export function PeriodPicker({ periods, activeKey, onSelect, periodType }: Props
             if (next) onSelect(next)
           }}
           aria-label={periodType === 'annual' ? 'Pilih tahun' : 'Pilih bulan'}
-          className="w-max"
+          className="w-max gap-1.5"
         >
           {ordered.map((p) => {
             const unavailable = p.empty || p.error
@@ -66,12 +67,12 @@ export function PeriodPicker({ periods, activeKey, onSelect, periodType }: Props
                 // aria-checked sudah diberikan ToggleGroup (role=radio).
                 title={mismatch ? `${baseTitle} — label laporan menyebut tahun lain` : baseTitle}
                 className={cn(
-                  'tabular shrink-0 border',
-                  selected && 'border-primary bg-primary text-primary-foreground',
-                  !selected &&
-                    unavailable &&
-                    'border-border bg-muted text-muted-foreground/60 hover:bg-muted hover:text-foreground',
-                  !selected && !unavailable && 'border-input',
+                  'tabular shrink-0 gap-1.5 border px-2.5 transition-colors',
+                  selected
+                    ? 'border-primary bg-primary text-primary-foreground shadow-xs hover:bg-primary hover:text-primary-foreground'
+                    : unavailable
+                      ? 'border-border bg-muted text-muted-foreground/70 hover:bg-muted hover:text-muted-foreground'
+                      : 'border-input bg-card text-foreground hover:bg-accent',
                 )}
               >
                 {p.label}

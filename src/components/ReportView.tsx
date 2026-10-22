@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, Download, Loader2, Radio } from 'lucide-react'
+import { AlertTriangle, ChevronRight, Download, Loader2, Radio } from 'lucide-react'
 
 import type { PeriodEntry, ReportData, ReportEntry } from '@/lib/data'
-import { cleanDescription, isAllDataZero, loadReport, pickInitialPeriod } from '@/lib/data'
+import {
+  cleanDescription,
+  isAllDataZero,
+  loadReport,
+  pickInitialPeriod,
+  prettyGroup,
+} from '@/lib/data'
 import { fetchLiveReport, type LiveResult } from '@/lib/live'
 import { DESA_AWARE_MODULES, loadWilayah } from '@/lib/wilayah'
 import { DataTable } from '@/components/DataTable'
@@ -12,12 +18,13 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { cn } from '@/lib/utils'
 
 type Props = {
   entry: ReportEntry
   onDownload: (data: ReportData, suffix: string) => void
   onPeriodChange?: (p: PeriodEntry) => void
+  /** Kembali ke ringkasan modul (dashboard). */
+  onBackToDashboard?: () => void
 }
 
 /** Nama kolom yang biasanya memuat nama desa/kelurahan. */
@@ -53,7 +60,7 @@ function filterByDesa(data: ReportData, desaNama: string): ReportData {
   return { ...data, rows, empty: rows.length === 0 }
 }
 
-export function ReportView({ entry, onDownload, onPeriodChange }: Props) {
+export function ReportView({ entry, onDownload, onPeriodChange, onBackToDashboard }: Props) {
   const [period, setPeriod] = useState<PeriodEntry | null>(() =>
     pickInitialPeriod(entry.periods),
   )
@@ -191,32 +198,51 @@ export function ReportView({ entry, onDownload, onPeriodChange }: Props) {
 
   return (
     <section aria-labelledby="judul-laporan" className="min-w-0">
-      <header className="mb-4">
-        <div className="mb-2 flex flex-wrap items-center gap-1.5">
-          <Badge>{entry.moduleLabel}</Badge>
-          <Badge variant="muted" className="tabular">
-            {entry.reportName}
-          </Badge>
-          <Badge variant="outline">{entry.reportCategory}</Badge>
-          <Badge variant="outline">
-            {entry.periodType === 'monthly'
-              ? 'Bulanan'
-              : entry.periodType === 'cumulative'
-                ? 'Kumulatif'
-                : 'Tahunan'}
-          </Badge>
-        </div>
+      <nav aria-label="Lokasi" className="mb-3 flex flex-wrap items-center gap-1.5 text-xs">
+        {onBackToDashboard ? (
+          <button
+            type="button"
+            onClick={onBackToDashboard}
+            className="cursor-pointer rounded-sm text-muted-foreground transition-colors hover:text-primary hover:underline"
+          >
+            {entry.moduleLabel}
+          </button>
+        ) : (
+          <span className="text-muted-foreground">{entry.moduleLabel}</span>
+        )}
+        <ChevronRight className="size-3 text-muted-foreground/60" aria-hidden="true" />
+        <span className="text-muted-foreground">{prettyGroup(entry.group)}</span>
+        <ChevronRight className="size-3 text-muted-foreground/60" aria-hidden="true" />
+        <span className="font-medium text-foreground">{entry.reportName}</span>
+      </nav>
 
+      <header className="mb-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1 basis-full sm:basis-0">
             <h2
               id="judul-laporan"
-              className="text-xl leading-snug font-semibold text-balance sm:text-2xl"
+              className="text-lg leading-snug font-semibold text-balance sm:text-2xl"
             >
-              {entry.reportName} — {cleanDescription(entry.description)}
+              {cleanDescription(entry.description)}
             </h2>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <Badge variant="muted" className="tabular">
+                {entry.reportName}
+              </Badge>
+              <Badge variant="outline">{entry.reportCategory}</Badge>
+              <Badge variant="outline">
+                {entry.periodType === 'monthly'
+                  ? 'Bulanan'
+                  : entry.periodType === 'cumulative'
+                    ? 'Kumulatif'
+                    : 'Tahunan'}
+              </Badge>
+              <span className="tabular text-xs text-muted-foreground">
+                {periodSummary.filled}/{periodSummary.total} periode berisi data
+              </span>
+            </div>
             {view?.wilayah && Object.keys(view.wilayah).length > 0 && (
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-2 text-sm text-muted-foreground">
                 {Object.entries(view.wilayah)
                   .map(([k, v]) => `${k.charAt(0).toUpperCase()}${k.slice(1)}: ${v}`)
                   .join(' · ')}
@@ -227,6 +253,7 @@ export function ReportView({ entry, onDownload, onPeriodChange }: Props) {
           <Button
             type="button"
             variant="outline"
+            className="shrink-0"
             onClick={() => view && onDownload(view, downloadSuffix)}
             disabled={!view || view.empty}
           >
@@ -236,24 +263,29 @@ export function ReportView({ entry, onDownload, onPeriodChange }: Props) {
         </div>
       </header>
 
-      <PeriodPicker
-        periods={entry.periods}
-        activeKey={period?.key ?? null}
-        periodType={entry.periodType}
-        onSelect={(p) => {
-          setPeriod(p)
-          notifyRef.current?.(p)
-        }}
-      />
+      <div className="mb-5 rounded-lg border border-border bg-card">
+        <div className="flex flex-col gap-4 p-4">
+          <PeriodPicker
+            periods={entry.periods}
+            activeKey={period?.key ?? null}
+            periodType={entry.periodType}
+            onSelect={(p) => {
+              setPeriod(p)
+              notifyRef.current?.(p)
+            }}
+          />
 
-      <WilayahPicker
-        kecamatanId={kecamatanId}
-        desaId={desaId}
-        onKecamatanChange={setKecamatanId}
-        onDesaChange={setDesaId}
-        desaAvailable={DESA_AWARE_MODULES[entry.module] === true}
-        disabled={loading || !period}
-      />
+          <WilayahPicker
+            kecamatanId={kecamatanId}
+            desaId={desaId}
+            onKecamatanChange={setKecamatanId}
+            onDesaChange={setDesaId}
+            desaAvailable={DESA_AWARE_MODULES[entry.module] === true}
+            disabled={loading || !period}
+            className="border-t border-border pt-4"
+          />
+        </div>
+      </div>
 
       {periodSummary.total > 0 && periodSummary.filled === 0 && (
         <Alert variant="warning" className="mb-4">
@@ -364,7 +396,7 @@ function TableSkeleton() {
         Memuat tabel…
       </div>
       <Skeleton className="h-8 w-full max-w-xs" />
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="overflow-hidden rounded-lg border border-border bg-card">
         <Skeleton className="h-10 w-full rounded-none" />
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="flex gap-4 border-b border-border/60 px-4 py-3 last:border-0">

@@ -286,7 +286,7 @@ src/
     WilayahPicker.tsx        # dropdown kecamatan + desa (Select)
     VervalView.tsx           # modul Verval KRS (live, agregat)
     DataTable.tsx            # tabel: header bertingkat, sort, filter, sembunyikan kolom kosong
-    Overview.tsx             # ringkasan saat belum ada laporan dipilih
+    Dashboard.tsx            # ringkasan modul: KPI, cakupan modul, laporan teratas
     ui/                      # primitives shadcn/ui (button, card, table, alert, …)
   lib/data.ts                # loader + label helper
   lib/jasper.ts              # parser HTML JasperReports (port dari build_snapshot.py)
@@ -303,9 +303,12 @@ src/
   `bunx --bun shadcn@latest add <nama>`, jangan menulis tombol/kartu manual lagi.
   `npx shadcn@latest add` juga sah; `bunx` dipilih agar konsisten dengan repo yang
   memakai `bun.lock` dan tidak memunculkan lockfile kedua.
-- Token warna & radius di `src/index.css` (`:root` + `@theme inline`). `--accent` di
-  shadcn berarti permukaan hover, **bukan** warna merek; amber peringatan ada di
-  `--warning` dan dipakai `Alert`/`Badge` varian `warning`.
+- Token warna & radius di `src/index.css` (`:root` + `@theme inline`). Prinsipnya:
+  netral slate untuk permukaan/teks, **satu** aksen biru (`--primary`) untuk aksi dan
+  status terpilih, amber hanya untuk peringatan, hijau hanya untuk "ada data". Tidak
+  ada gradient — semua permukaan solid agar tabel angka tetap terbaca. `--accent` di
+  shadcn berarti permukaan hover, **bukan** warna merek; `--warning-surface` dan
+  `--destructive-surface` dipakai `Alert`/`Badge` agar warnanya tidak dari opasitas.
 - Alias `@/` → `src/` (lihat `components.json` + `vite.config.ts`).
 - **Jebakan:** jangan membungkus `ToggleGroupItem` dengan `TooltipTrigger asChild`.
   Radix menimpa `data-state` item (`on` → `closed`) sehingga gaya terpilih hilang
@@ -313,7 +316,10 @@ src/
 - Fokus keyboard memakai `outline` (aturan top-level di `index.css`), bukan utility
   `ring-*`: di build Tailwind v4 ini `--tw-ring-shadow` terkomposisi transparan.
 - Sidebar dirender dua kali (aside desktop + Sheet mobile); setiap instance wajib
-  diberi `idPrefix` berbeda agar `id` DOM tidak kembar.
+  diberi `idPrefix` berbeda agar `id` DOM tidak kembar. Modul memakai pola akordeon
+  satu-terbuka: 300 laporan sekaligus tidak terbaca.
+- Memilih modul menampilkan `Dashboard` modul itu (`active = null`); memilih laporan
+  baru mengisi `ReportView`. Breadcrumb di `ReportView` mengembalikan ke dashboard.
 
 ### Format satu file laporan
 

@@ -121,25 +121,32 @@ export function VervalView({ onDownload }: Props) {
 
   return (
     <section aria-labelledby="judul-verval" className="min-w-0">
-      <header className="mb-4">
-        <div className="mb-2 flex flex-wrap items-center gap-1.5">
-          <Badge>Verval KRS</Badge>
-          <Badge variant="outline">Live · agregat</Badge>
-          <Badge variant="muted">Baris: {level}</Badge>
-        </div>
+      <header className="mb-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h2 id="judul-verval" className="text-xl leading-snug font-semibold sm:text-2xl">
-              Monitoring Verval KRS — Kab. Tanah Laut
+          <div className="min-w-0 flex-1 basis-full sm:basis-0">
+            <p className="eyebrow">Live monitoring</p>
+            <h2
+              id="judul-verval"
+              className="mt-1 text-lg leading-snug font-semibold sm:text-2xl"
+            >
+              Monitoring Verval KRS
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Pendataan verval Keluarga Berisiko Stunting per wilayah. Angka agregat, bukan data
-              per orang.
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+              Pendataan verval Keluarga Berisiko Stunting per wilayah di Kab. Tanah Laut. Angka
+              agregat, bukan data per orang.
             </p>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <Badge variant="success">Live</Badge>
+              <Badge variant="outline">Baris: {level}</Badge>
+              <Badge variant="muted" className="tabular">
+                Semester {periode} {tahun}
+              </Badge>
+            </div>
           </div>
           <Button
             type="button"
             variant="outline"
+            className="shrink-0"
             disabled={!table || table.empty}
             onClick={() =>
               table &&
@@ -157,54 +164,59 @@ export function VervalView({ onDownload }: Props) {
         </div>
       </header>
 
-      <div className="mb-1.5 flex items-center gap-2">
-        <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-          Periode
-        </span>
-        <span className="text-xs text-muted-foreground">
-          semester wajib — tanpa semester server menjumlahkan kedua semester
-        </span>
-      </div>
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Select
-          value={String(tahun)}
-          onValueChange={(v) => setTahun(Number(v))}
-          disabled={loading && !data}
-        >
-          <SelectTrigger className="w-[7.5rem]" aria-label="Pilih tahun">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {TAHUN.map((y) => (
-              <SelectItem key={y} value={String(y)}>
-                {y}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={String(periode)}
-          onValueChange={(v) => setPeriode(Number(v) === 1 ? 1 : 2)}
-          disabled={loading && !data}
-        >
-          <SelectTrigger className="w-[11rem]" aria-label="Pilih semester">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="1">Semester 1</SelectItem>
-            <SelectItem value="2">Semester 2</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <div className="mb-5 rounded-lg border border-border bg-card">
+        <div className="flex flex-col gap-4 p-4">
+          <div>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <span className="eyebrow">Periode</span>
+              <span className="text-xs text-muted-foreground">
+                semester wajib — tanpa semester server menjumlahkan keduanya
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select
+                value={String(tahun)}
+                onValueChange={(v) => setTahun(Number(v))}
+                disabled={loading && !data}
+              >
+                <SelectTrigger className="w-[7.5rem]" aria-label="Pilih tahun">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TAHUN.map((y) => (
+                    <SelectItem key={y} value={String(y)}>
+                      {y}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={String(periode)}
+                onValueChange={(v) => setPeriode(Number(v) === 1 ? 1 : 2)}
+                disabled={loading && !data}
+              >
+                <SelectTrigger className="w-[11rem]" aria-label="Pilih semester">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Semester 1</SelectItem>
+                  <SelectItem value="2">Semester 2</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-      <WilayahPicker
-        kecamatanId={kecamatanId}
-        desaId={desaId}
-        onKecamatanChange={setKecamatanId}
-        onDesaChange={setDesaId}
-        desaAvailable
-        disabled={loading && !data}
-      />
+          <WilayahPicker
+            kecamatanId={kecamatanId}
+            desaId={desaId}
+            onKecamatanChange={setKecamatanId}
+            onDesaChange={setDesaId}
+            desaAvailable
+            disabled={loading && !data}
+            className="border-t border-border pt-4"
+          />
+        </div>
+      </div>
 
       {loading && (
         <div aria-busy="true" aria-label="Memuat data" className="flex flex-col gap-3">

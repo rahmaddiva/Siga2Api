@@ -139,8 +139,9 @@ export function prettyGroup(group: string): string {
 /** Deskripsi tabel tanpa prefiks "TABEL n - " yang duplikatif. */
 export function cleanDescription(desc: string): string {
   return desc
-    .replace(/^TABEL\s+[\dA-Z]+\s*[-–]\s*/i, '')
-    .replace(/^TABLE\s+[\dA-Z]+\s*[-–]\s*/i, '')
+    // Awalan kode tabel ("Tabel38C - ", "TABEL 3B - ") sudah tampil sebagai
+    // badge di sidebar/header, jadi tidak diulang di judul.
+    .replace(/^tab(?:el|le)\s*[\dA-Z]+\s*[-–—]\s*/i, '')
     .replace(/\s*-\s*\((bulanan|tahunan|kumulatif)\)\s*$/i, '')
     .trim()
 }
